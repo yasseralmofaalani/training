@@ -12,7 +12,7 @@
     <link href="css/font.css"
         rel="stylesheet">
 
-    <style>
+   <style>
         :root {
             --glass-bg: rgba(15, 23, 42, 0.08);
             --glass-border: rgba(255, 255, 255, 0.2);
@@ -94,10 +94,10 @@
         }
 
         h1,
-        h2 {
-            margin-top: 0;
-            font-weight: 800;
+        h2,
+        h3 {
             color: #0f172a;
+            margin-top: 0;
         }
 
         p {
@@ -120,12 +120,14 @@
             height: 100%;
             width: 0;
             background: linear-gradient(90deg, #3b82f6, #8b5cf6);
-            transition: width 0.3s ease;
+            transition: width 0.3s;
         }
 
         #map-tooltip {
             position: fixed;
             z-index: 50;
+            top: 30px;
+            right: 30px;
             background: #b8c4eb;
             backdrop-filter: blur(12px);
             border: 1px solid var(--glass-border);
@@ -134,23 +136,100 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
             font-size: 0.95rem;
             max-width: 300px;
-            top: 30px;
-            right: 30px;
             font-weight: 700;
             color: #1e293b;
             border-right: 5px solid #3b82f6;
         }
 
-        #step-icons {
-            position: fixed;
-            left: 30px;
-            top: 50%;
-            transform: translateY(-50%);
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            z-index: 100;
-        }
+      #steps-bar{
+    position: fixed;
+    top: 12px;
+    left: 30%;
+    transform: translateX(-50%);
+    z-index: 999999;
+    width: min(950px, 95%);
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+}
+
+#steps-title{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    color: #0f172a;
+    font-weight: 800;
+    font-size: 14px;
+}
+
+#step-counter{
+    font-weight: 900;
+    font-size: 13px;
+    opacity: 0.9;
+}
+
+#step-icons{
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 6px 4px;
+    scroll-behavior: smooth;
+    white-space: nowrap;
+}
+
+#step-icons::-webkit-scrollbar{
+    height: 6px;
+}
+
+#step-icons::-webkit-scrollbar-thumb{
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+}
+
+.step-icon{
+    min-width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    font-size: 13px;
+    font-weight: 900;
+    color: rgba(15,23,42,0.75);
+    background: rgba(255,255,255,0.25);
+    border: 1px solid rgba(255,255,255,0.35);
+    transition: 0.25s ease;
+}
+
+.step-icon:hover{
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.45);
+    color: #0f172a;
+}
+
+/* DONE */
+.step-icon.done{
+    background: rgba(16, 185, 129, 0.25);
+    border: 1px solid rgba(16, 185, 129, 0.7);
+    color: #065f46;
+}
+
+/* ACTIVE */
+.step-icon.active{
+    background: rgba(59, 130, 246, 0.35);
+    border: 1px solid rgba(59, 130, 246, 0.9);
+    color: #0f172a;
+    transform: scale(1.1);
+    box-shadow: 0 0 18px rgba(59, 130, 246, 0.6);
+}
+
 
         .step-icon {
             width: 32px;
@@ -166,20 +245,14 @@
             font-weight: bold;
             color: #64748b;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: 0.3s;
         }
 
-        .step-icon:hover {
-            background: #3b82f6;
-            color: white;
-            transform: scale(1.2);
-        }
-
+        .step-icon:hover,
         .step-icon.active {
             background: #3b82f6;
             color: white;
-            transform: scale(1.3);
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            transform: scale(1.2);
         }
 
         .step-icon.done {
@@ -204,7 +277,7 @@
             border-radius: 16px;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: 0.3s;
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
         }
 
@@ -218,21 +291,20 @@
             cursor: not-allowed;
         }
 
-        @media (max-width: 900px) {
-            .narrative-panel {
-                width: 90%;
-                margin: 0 auto;
-            }
+       @media (max-width: 900px) {
+    #steps-bar{
+        top: 8px;
+        width: 96%;
+    }
 
-            .step {
-                justify-content: center;
-                padding: 0 20px;
-            }
+    .step-icon{
+        min-width: 30px;
+        height: 30px;
+        font-size: 12px;
+        border-radius: 10px;
+    }
+}
 
-            #step-icons {
-                display: none;
-            }
-        }
     </style>
 </head>
 
@@ -244,7 +316,18 @@
     <div id="map-container">
         <div id="map"></div>
     </div>
+   <div id="map-container">
+    <div id="map"></div>
+</div>
+
+<div id="steps-bar">
+    <div id="steps-title">
+        <span id="step-label">التقدم</span>
+        <span id="step-counter">1 / 50</span>
+    </div>
     <div id="step-icons"></div>
+</div>
+
 
     <main id="scrolly">
         <!-- Slides 1 - 50 -->
@@ -580,6 +663,8 @@
         const tooltipBox = document.getElementById("map-tooltip");
         const progressBar = document.getElementById("progress-bar");
         const iconsContainer = document.getElementById("step-icons");
+        const stepCounter = document.getElementById("step-counter");
+        
 
         function setTooltip(text) { tooltipBox.innerHTML = text; }
         function clear() { analysisLayer.clearLayers(); }
@@ -659,6 +744,17 @@
                         icon.classList.toggle('active', iconNum === num);
                         icon.classList.toggle('done', iconNum < num);
                     });
+                    stepCounter.innerText = `${num} / 50`;
+
+const activeIcon = document.getElementById(`icon-s${num}`);
+if(activeIcon){
+    activeIcon.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest"
+    });
+}
+
                     document.getElementById('prev-btn').disabled = (num === 1);
                     document.getElementById('next-btn').disabled = (num === 50);
                 }
