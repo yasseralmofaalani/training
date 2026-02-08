@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>اليوم السابع: الورشة الختامية - دورة GIS المستوى 0</title>
+
+     <link rel="stylesheet" href="css/leaflet.css" />
+
+   <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link href="css/font.css"
+        rel="stylesheet">
+
+  <style>
+    :root {
+      --glass-bg: rgba(15, 23, 42, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --primary-accent: #3b82f6;
+      --text-main: #1e293b;
+    }
+
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #ffffff;
+      color: var(--text-main);
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    #map-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    #scrolly {
+      position: relative;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .step {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 5%;
+      margin-bottom: 50vh;
+    }
+
+    .narrative-panel {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 40px;
+      width: 450px;
+      max-width: 85%;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+      pointer-events: auto;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .step.active .narrative-panel {
+      transform: scale(1.02);
+      border-color: var(--primary-accent);
+    }
+
+    .step.fullscreen {
+      justify-content: center;
+      padding: 0;
+    }
+
+    .content-box {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 32px;
+      padding: 60px;
+      text-align: center;
+      max-width: 800px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+      pointer-events: auto;
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: #0f172a;
+      margin-top: 0;
+    }
+
+    p {
+      font-size: 1.15rem;
+      line-height: 1.8;
+      color: #334155;
+    }
+
+    #progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.05);
+      z-index: 1000;
+    }
+
+    #progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      transition: width 0.3s;
+    }
+
+    #map-tooltip {
+      position: fixed;
+      z-index: 50;
+      top: 30px;
+      right: 30px;
+      background: #b8c4eb;
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      padding: 15px 20px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      font-size: 0.95rem;
+      max-width: 300px;
+      font-weight: 700;
+      color: #1e293b;
+      border-right: 5px solid #3b82f6;
+    }
+
+    #step-icons {
+      position: fixed;
+      left: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: #64748b;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .step-icon:hover,
+    .step-icon.active {
+      background: #3b82f6;
+      color: white;
+      transform: scale(1.2);
+    }
+
+    .step-icon.done {
+      background: #10b981;
+      color: white;
+    }
+
+    .story-nav {
+      position: fixed;
+      bottom: 30px;
+      left: 30px;
+      z-index: 1000;
+      display: flex;
+      gap: 15px;
+    }
+
+    .nav-btn {
+      background: #3280ff;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: #3b82f6;
+      transform: translateY(-3px);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 900px) {
+      .narrative-panel {
+        width: 90%;
+        margin: 0 auto;
+      }
+
+      .step {
+        justify-content: center;
+        padding: 0 20px;
+      }
+
+      #step-icons {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+  <div id="map-tooltip">مرحباً بك في اليوم الختامي 🎓</div>
+  <div id="map-container">
+    <div id="map"></div>
+  </div>
+  <div id="step-icons"></div>
+
+  <main id="scrolly">
+    <!-- Slides 1 - 50 -->
+    <section id="s1" class="step fullscreen" data-step="s1">
+      <div class="content-box">
+        <h1>اليوم السابع: ورشة ArcGIS Pro العملية 💻</h1>
+        <p>اليوم هو يوم التطبيق الفعلي. سنقوم ببناء مشروع متكامل داخل عملاق الـ GIS المكتبي خطوة بخطوة حتى الاحتراف.</p>
+        
+    </section>
+
+    <section id="s2" class="step" data-step="s2">
+      <div class="narrative-panel">
+        <h2>تجهيز بيئة العمل</h2>
+        <p>تأكد من تنصيب البرنامج وتسجيل الدخول بحسابك. سنبدأ بإنشاء مشروع جديد تماماً.</p>
+      </div>
+    </section>
+    <section id="s3" class="step" data-step="s3">
+      <div class="narrative-panel">
+        <h2>إنشاء ملف المشروع (.aprx)</h2>
+        <p>اختر قوالب الخرائط الجاهزة وقم بتسمية مشروعك "مدينة المستقبل" لتنظيم كافة البيانات داخله.</p>
+      </div>
+    </section>
+    <section id="s4" class="step" data-step="s4">
+      <div class="narrative-panel">
+        <h2>ربط المجلدات وقواعد البيانات</h2>
+        <p>من نافذة Catalog، قم بعمل Folder Connection للوصول السريع لبياناتك وصورك الجغرافية.</p>
+      </div>
+    </section>
+    <section id="s5" class="step" data-step="s5">
+      <div class="narrative-panel">
+        <h2>إضافة خريطة الأساس (Basemap)</h2>
+        <p>اختر خلفية ملائمة لمشروعك (Imagery للمناطق المفتوحة، Topo للخرائط الهندسية).</p>
+      </div>
+    </section>
+    <section id="s6" class="step" data-step="s6">
+      <div class="narrative-panel">
+        <h2>الاتصال بـ ArcGIS Online</h2>
+        <p>سنقوم بتحميل بيانات الأحياء والمناطق الإدارية مباشرة من سحابة Esri المفتوحة (Living Atlas).</p>
+      </div>
+    </section>
+    <section id="s7" class="step" data-step="s7">
+      <div class="narrative-panel">
+        <h2>إنشاء قاعدة بيانات (FileGDB)</h2>
+        <p>بناء الوعاء الرقمي الجديد الذي سيحتوي على كافة طبقات المشروع التي سنقوم بإنشائها.</p>
+      </div>
+    </section>
+    <section id="s8" class="step" data-step="s8">
+      <div class="narrative-panel">
+        <h2>إنشاء طبقة جديدة لـ "المدارس"</h2>
+        <p>تعلم كيفية إنشاء Feature Class من النوع النقطي (Point) لتمثيل مراكز التعليم.</p>
+      </div>
+    </section>
+    <section id="s9" class="step" data-step="s9">
+      <div class="narrative-panel">
+        <h2>تعريف الحقول (Fields)</h2>
+        <p>سنضيف حقولاً لاسم المدرسة، السعة الطلابية، ونوع المبنى لربط المعلومة بالمكان.</p>
+      </div>
+    </section>
+    <section id="s10" class="step" data-step="s10">
+      <div class="narrative-panel">
+        <h2>استخدام الـ Domains</h2>
+        <p>بناء قوائم منسدلة لمنع أخطاء الإدخال (مثلاً: حكومي، خاص، دولي) وضمان جودة البيانات.</p>
+      </div>
+    </section>
+
+    <section id="s11" class="step" data-step="s11">
+      <div class="narrative-panel">
+        <h2>تفعيل خاصية الالتقاط (Snapping)</h2>
+        <p>تجهيز البرنامج لضمان دقة الرسم واتصال العناصر ببعضها البعض دون فجوات هندسية.</p>
+      </div>
+    </section>
+    <section id="s12" class="step" data-step="s12">
+      <div class="narrative-panel">
+        <h2>بدء الرسم (Digitizing)</h2>
+        <p>سنقوم الآن برسم مواقع المدارس فوق الصورة الفضائية بدقة باستخدام أدوات الـ Create Features.</p>
+      </div>
+    </section>
+    <section id="s13" class="step" data-step="s13">
+      <div class="narrative-panel">
+        <h2>تعبئة البيانات الوصفية</h2>
+        <p>فتح جدول البيانات (Attribute Table) وإدخال المعلومات لكل معلم قمنا برسمه على الخريطة.</p>
+      </div>
+    </section>
+    <section id="s14" class="step" data-step="s14">
+      <div class="narrative-panel">
+        <h2>استخدام الـ (Calculate Field)</h2>
+        <p>تعلم كيف يقوم البرنامج بحساب المساحات والأطوال آلياً باستخدام الصيغ الرياضية.</p>
+      </div>
+    </section>
+    <section id="s15" class="step" data-step="s15">
+      <div class="narrative-panel">
+        <h2>استيراد بيانات من Excel</h2>
+        <p>ربط ملفات الجداول الخارجية (مثل أعداد الطلاب لكل حي) بطبقة الأحياء الجغرافية.</p>
+      </div>
+    </section>
+    <section id="s16" class="step" data-step="s16">
+      <div class="narrative-panel">
+        <h2>الربط المكاني (Spatial Join)</h2>
+        <p>عملية ذكية لحساب عدد المدارس داخل كل حي برمجياً ودون تدخل يدوي.</p>
+      </div>
+    </section>
+    <section id="s17" class="step" data-step="s17">
+      <div class="narrative-panel">
+        <h2>تصميم الرموز (Symbology)</h2>
+        <p>تلوين الأحياء حسب كثافة المدارس لإنتاج خريطة (Choropleth) تعبر عن الواقع بوضوح.</p>
+      </div>
+    </section>
+    <section id="s18" class="step" data-step="s18">
+      <div class="narrative-panel">
+        <h2>إضافة التسميات (Labels)</h2>
+        <p>ضبط ظهور أسماء المدارس والأحياء بطريقة فنية وسهلة القراءة على الخريطة.</p>
+      </div>
+    </section>
+    <section id="s19" class="step" data-step="s19">
+      <div class="narrative-panel">
+        <h2>بدء التحليل: أداة Buffer</h2>
+        <p>سنقوم برسم نطاق أمان (1 كم) حول كل مدرسة لمعرفة المناطق المخدومة فعلياً.</p>
+      </div>
+    </section>
+    <section id="s20" class="step" data-step="s20">
+      <div class="narrative-panel">
+        <h2>استخدام أداة Clip</h2>
+        <p>قص البيانات الزائدة والتركيز فقط على ما يقع داخل حدود منطقة دراستنا المحددة.</p>
+      </div>
+    </section>
+
+    <section id="s21" class="step" data-step="s21">
+      <div class="narrative-panel">
+        <h2>تحليل التراكب (Intersect)</h2>
+        <p>اكتشاف المناطق التي تتقاطع فيها عدة معايير (مثل السكن القريب من الحدائق والبعيد عن الضوضاء).</p>
+      </div>
+    </section>
+    <section id="s22" class="step" data-step="s22">
+      <div class="narrative-panel">
+        <h2>نمذجة الملاءمة المكانية</h2>
+        <p>اختيار أفضل موقع لبناء مدرسة جديدة بناءً على الكثافة السكانية وتوفر الأراضي الفضاء.</p>
+      </div>
+    </section>
+    <section id="s23" class="step" data-step="s23">
+      <div class="narrative-panel">
+        <h2>تحليل شبكة الطرق</h2>
+        <p>حساب أسرع المسارات لوصول حافلات المدارس وتجنب الازدحامات المرورية الكبرى.</p>
+      </div>
+    </section>
+    <section id="s24" class="step" data-step="s24">
+      <div class="narrative-panel">
+        <h2>التحليل الإحصائي المكاني</h2>
+        <p>اكتشاف التجمعات (Hot Spots) للنمو العمراني لتوجيه الاستثمارات الحكومية القادمة.</p>
+      </div>
+    </section>
+    <section id="s25" class="step" data-step="s25">
+      <div class="narrative-panel">
+        <h2>بناء الـ (ModelBuilder)</h2>
+        <p>تجميع كافة أدوات التحليل السابقة في شكل تدفق برمجى يعمل تلقائياً عند تغيير البيانات.</p>
+      </div>
+    </section>
+    <section id="s26" class="step" data-step="s26">
+      <div class="narrative-panel">
+        <h2>تجهيز مخرجات المشروع</h2>
+        <p>الانتقال من مرحلة الخريطة التفاعلية إلى مرحلة التصميم الفني للطباعة (Layout).</p>
+      </div>
+    </section>
+    <section id="s27" class="step" data-step="s27">
+      <div class="narrative-panel">
+        <h2>إضافة إطار الخريطة والـ (Legend)</h2>
+        <p>توزيع عناصر الخريطة الاحترافية: مفتاح الخرائط، سهم الشمال، ومقياس الرسم.</p>
+      </div>
+    </section>
+    <section id="s28" class="step" data-step="s28">
+      <div class="narrative-panel">
+        <h2>إضافة البيانات الديناميكية</h2>
+        <p>جعل الخريطة تحدث بيانات التاريخ واسم الرسام وإحداثيات الموقع آلياً داخل التصميم.</p>
+      </div>
+    </section>
+    <section id="s29" class="step" data-step="s29">
+      <div class="narrative-panel">
+        <h2>تصدير الخريطة النهائية</h2>
+        <p>حفظ العمل بصيغة PDF عالية الجودة أو صور احترافية لتقديمها في التقارير الرسمية.</p>
+      </div>
+    </section>
+    <section id="s30" class="step" data-step="s30">
+      <div class="narrative-panel">
+        <h2>مشاركة المشروع ويب (Sharing)</h2>
+        <p>رفع الطبقات إلى ArcGIS Online لتحويل مشروعك المكتبي إلى منصة ويب تفاعلية.</p>
+      </div>
+    </section>
+
+    <section id="s31" class="step" data-step="s31">
+      <div class="narrative-panel">
+        <h2>إعداد الـ (Web Map)</h2>
+        <p>تجهيز الخريطة المنشورة على المتصفح وإضافة الصور والروابط لكل معلم جغرافي.</p>
+      </div>
+    </section>
+    <section id="s32" class="step" data-step="s32">
+      <div class="narrative-panel">
+        <h2>بناء الـ (Dashboard)</h2>
+        <p>تصميم لوحة المراقبة التي تعرض أعداد المدارس والطلاب لحظياً لصانع القرار.</p>
+      </div>
+    </section>
+    <section id="s33" class="step" data-step="s33">
+      <div class="narrative-panel">
+        <h2>استخدام برامج الميدان (Field Maps)</h2>
+        <p>تجربة فتح الخريطة التي صممتها على هاتفك الجوال لجمع بيانات حقيقية من الشارع.</p>
+      </div>
+    </section>
+    <section id="s34" class="step" data-step="s34">
+      <div class="narrative-panel">
+        <h2>إدارة المستخدمين والأذونات</h2>
+        <p>تحديد من يحق له تعديل البيانات الميدانية ومن يحق له العرض فقط لضمان أمان النظام.</p>
+      </div>
+    </section>
+    <section id="s35" class="step" data-step="s35">
+      <div class="narrative-panel">
+        <h2>مراجعة جودة المشروع النهائية</h2>
+        <p>التأكد من دقة المعلومات، جمالية العرض، وسهولة استخدام النظام من قبل الآخرين.</p>
+      </div>
+    </section>
+    <section id="s36" class="step" data-step="s36">
+      <div class="narrative-panel">
+        <h2>أرشفة المشروع</h2>
+        <p>حفظ نسخة من قاعدة البيانات والمشروع كمرجع للمراحل القادمة وللتوثيق التاريخي.</p>
+      </div>
+    </section>
+    <section id="s37" class="step" data-step="s37">
+      <div class="narrative-panel">
+        <h2>التعريف بمشروع التخرج</h2>
+        <p>حان الوقت لتطبيق كل ما تعلمته في الأيام الماضية على منطقة دراسة من اختيارك.</p>
+      </div>
+    </section>
+    <section id="s38" class="step" data-step="s38">
+      <div class="narrative-panel">
+        <h2>النصيحة الختامية للخبراء</h2>
+        <p>GIS بحر لا ينتهي؛ الممارسة اليومية هي سر احتراف الأدوات وحل المشكلات المعقدة.</p>
+      </div>
+    </section>
+    <section id="s39" class="step" data-step="s39">
+      <div class="narrative-panel">
+        <h2>كيف تتابع تطورك؟</h2>
+        <p>الانضمام للمجتمعات الجغرافية، متابعة تحديثات Esri، والتجربة المستمرة لأدوات التحليل الجديدة.</p>
+      </div>
+    </section>
+    <section id="s40" class="step" data-step="s40">
+      <div class="narrative-panel">
+        <h2>الاستعداد للمستوى المتقدم</h2>
+        <p>بعد إتقانك للأساسيات، أنت الآن مؤهل لدخول عالم الـ Python والتحليل الإحصائي الجغرافي المعمق.</p>
+      </div>
+    </section>
+
+    <section id="s41" class="step" data-step="s41">
+      <div class="narrative-panel">
+        <h2>شكر وتقدير</h2>
+        <p>نشكرك على مرافقتنا في هذه الرحلة المكثفة. الجغرافيا أصبحت الآن جزءاً من تفكيرك الاستراتيجي.</p>
+      </div>
+    </section>
+    <section id="s42" class="step" data-step="s42">
+      <div class="narrative-panel">
+        <p>بهذا الكم من البيانات نكون قد  قدمنا فكرة عامة عن نظم المعلومات الجغرافية وأهميتها</p>
+      </div>
+    </section>
+    <section id="s43" class="step" data-step="s43">
+      <div class="narrative-panel">
+        <p>إن تعلّم نظم المعلومات الجغرافية (GIS) أو أي علمٍ آخر لا يأتي بالإجبار، ولا يتحقق بالضغط أو التلقين، بل يولد من شغف الإنسان وحبه للمعرفة.
+فالعلم الحقيقي هو الذي ندرسه بإرادتنا، ونطوره بسعينا المستمر، لأن التطور لا يصنعه الوقت… بل تصنعه الرغبة والاجتهاد.</p>
+      </div>
+    </section>
+    <section id="s44" class="step" data-step="s44">
+      <div class="narrative-panel">
+        <h2>ملخص الأسبوع</h2>
+        <p>من البيانات، للمكان، للتحليل، للأمان، للمشروع.. دورة حياة جغرافية كاملة في 7 أيام.</p>
+      </div>
+    </section>
+    <section id="s45" class="step" data-step="s45">
+      <div class="narrative-panel">
+        <h2>روابط إضافية</h2>
+        <p>سنزودك بمصادر لبيانات مفتوحة وتدريبات مجانية لتستمر في تطوير مهاراتك.</p>
+      </div>
+    </section>
+    <section id="s46" class="step" data-step="s46">
+      <div class="narrative-panel">
+        <h2>كلمة من القلب</h2>
+        <p>في ختام هذا التدريب، أتقدم بجزيل الشكر والامتنان لجميع المتدربين على التزامهم وحضورهم وتفاعلهم الإيجابي طوال فترة التدريب. لقد كان من دواعي سروري العمل معكم ومشاركة المعرفة والخبرة في هذا المجال.
+
+وأؤكد لكم أن التعلم لا يتوقف عند نهاية الدورة، بل هو بداية طريق طويل من التطوير الذاتي وبناء المهارات. فالمثابرة والاستمرار في البحث والتطبيق العملي هما مفتاح النجاح الحقيقي، خصوصًا في مجالات متجددة مثل نظم المعلومات الجغرافية وغيرها من العلوم الحديثة.
+
+أتمنى لكم دوام التوفيق والنجاح، وأرجو أن يكون هذا التدريب قد أضاف لكم قيمة علمية وعملية تساعدكم في مسيرتكم القادمة، وأن نلتقي دائمًا على طريق العلم والتطوير.</p>
+      </div>
+    </section>
+    <section id="s47" class="step" data-step="s47">
+      <div class="narrative-panel">
+        <h2>التوقيع والختام</h2>
+        <p>فريق إعداد دورة GIS المستوى 0 - نحن فخورون بك جداً.</p>
+      </div>
+    </section>
+    <section id="s48" class="step" data-step="s48">
+      
+      <section id="s49" class="step fullscreen" data-step="s49">
+        <div class="content-box">
+          <h1 style="color: #10b981;">تهانينا! أتممت دورة GIS المستوى 0 بالكامل 🎉</h1>
+          <p>لقد صمدت وتعلمت الكثير. الآن العالم مرسوم بين يديك بدقة متناهية.</p>
+          <div style="margin-top: 30px;"><a href="final-day.html" class="nav-btn" style="text-decoration:none;">اليوم
+              الثامن ➔</a></div>
+        </div>
+      </section>
+      
+  </main>
+
+  <div class="story-nav">
+    <button id="prev-btn" class="nav-btn" disabled>السابق</button>
+    <button id="next-btn" class="nav-btn">التالي</button>
+    <button id="restart-btn" class="nav-btn">إعادة</button>
+  </div>
+
+  <script type="module">
+    import L from 'https://esm.sh/leaflet';
+
+    const map = L.map('map', {
+      zoomControl: false, scrollWheelZoom: false, dragging: false,
+      attributionControl: false, doubleClickZoom: false
+    }).setView([34.1, 40.0], 6);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', { zIndex: 1000 }).addTo(map);
+    const analysisLayer = L.layerGroup().addTo(map);
+
+    const tooltipBox = document.getElementById("map-tooltip");
+    const progressBar = document.getElementById("progress-bar");
+    const iconsContainer = document.getElementById("step-icons");
+
+    function setTooltip(text) { tooltipBox.innerHTML = text; }
+    function clear() { analysisLayer.clearLayers(); }
+
+    for (let i = 1; i <= 50; i++) {
+      const icon = document.createElement('div');
+      icon.className = 'step-icon'; icon.innerText = i; icon.id = `icon-s${i}`;
+      icon.onclick = () => document.getElementById(`s${i}`)?.scrollIntoView({ behavior: 'smooth' });
+      iconsContainer.appendChild(icon);
+    }
+
+    const actions = {
+      s1: () => { clear(); map.flyTo([34.0563, -117.1956], 14); setTooltip("اليوم السابع: الورشة الختامية - حول العلم إلى عمل."); },
+      s2: () => { clear(); map.flyTo([34.0563, -117.1956], 12); setTooltip("بيئة العمل: انطلاقة مشروعك الأول."); },
+      s3: () => { clear(); map.flyTo([0, 0], 2); setTooltip("مشروع (.aprx): الحاوية الذكية لإبداعك."); },
+      s4: () => { clear(); map.flyTo([24.7, 46.7], 8); setTooltip("Folder Connections: ربط الملفات الجغرافية."); },
+      s5: () => { clear(); map.flyTo([24.71, 46.67], 15); setTooltip("Basemaps: اختيار نافذة رؤية العالم."); },
+      s6: () => { clear(); map.flyTo([0, 0], 1); setTooltip("ArcGIS Online: بوابة البيانات العالمية."); },
+      s7: () => { clear(); L.circle([24.7, 46.7], { radius: 5000, color: 'blue' }).addTo(analysisLayer); setTooltip("FileGDB: بناء قاعدة البيانات الجغرافية."); },
+      s8: () => { clear(); L.marker([24.71, 46.68]).addTo(analysisLayer); setTooltip("Feature Classes: رقمنة المواقع التعليمية."); },
+      s9: () => { clear(); map.setZoom(16); setTooltip("Attribute Fields: ربط الأرقام والأسماء بالمكان."); },
+      s10: () => { clear(); map.setZoom(14); setTooltip("Domains: ضمان جودة البيانات ومنع الخطأ."); },
+      s11: () => { clear(); map.flyTo([24.7, 46.7], 17); setTooltip("Snapping: الدقة الهندسية في الرسم."); },
+      s12: () => { clear(); L.marker([36.2, 37.1]).addTo(analysisLayer); map.flyTo([36.2, 37.1], 16); setTooltip("Digitizing: رسم معالم الواقع فوق الصور."); },
+      s13: () => { clear(); map.setZoom(14); setTooltip("Attribute Table: القصة خلف كل معلم جغرافي."); },
+      s14: () => { clear(); L.circle([36.2, 37.1], { radius: 500, color: 'green' }).addTo(analysisLayer); setTooltip("Calculate Field: الحساب الآلي للمساحات."); },
+      s15: () => { clear(); map.flyTo([0, 0], 2); setTooltip("Excel Import: ربط البيانات الخارجية بالخريطة."); },
+      s16: () => { clear(); map.setZoom(8); setTooltip("Spatial Join: نقل البيانات عبر علاقات المكان."); },
+      s17: () => { clear(); map.flyTo([24.7, 46.7], 12); setTooltip("Symbology: الاحتراف في تمييز الأنماط."); },
+      s18: () => { clear(); map.setZoom(14); setTooltip("Labeling: فن عرض الأسماء بوضوح."); },
+      s19: () => { clear(); L.circle([36.2, 37.1], { radius: 1000, color: '#3b82f6', fillOpacity: 0.2 }).addTo(analysisLayer); map.flyTo([36.2, 37.1], 15); setTooltip("Buffer Analysis: تحديد مناطق تأثير المدارس."); },
+      s20: () => { clear(); L.polygon([[36.2, 37.1], [36.21, 37.1], [36.21, 37.11], [36.2, 37.11]], { color: 'red' }).addTo(analysisLayer); setTooltip("Clip: قص البيانات لمنطقة الدراسة المحددة."); },
+      s21: () => { clear(); map.setZoom(12); setTooltip("Intersect: حيث تلتقي المعلومات وتتضح الرؤية."); },
+      s22: () => { clear(); map.flyTo([34, 40], 6); setTooltip("Suitability: اختيار الموقع الأمثل للمشاريع."); },
+      s23: () => { clear(); L.polyline([[24.7, 46.7], [24.8, 46.8]], { color: 'black' }).addTo(analysisLayer); setTooltip("Network: إيجاد أسرع الطرق والمسارات."); },
+      s24: () => { clear(); for (let i = 0; i < 20; i++) L.circleMarker([24.7 + (Math.random() - 0.5) * 0.2, 46.7 + (Math.random() - 0.5) * 0.2], { radius: 5 }).addTo(analysisLayer); setTooltip("Spatial Stats: اكتشاف تجمعات النمو."); },
+      s25: () => { clear(); map.flyTo([34, 39], 10); setTooltip("ModelBuilder: القوة في أتمتة الخطوات."); },
+      s26: () => { clear(); map.flyTo([0, 0], 2); setTooltip("Layout Design: الخريطة كوثيقة رسمية."); },
+      s27: () => { clear(); map.setZoom(5); setTooltip("Map Elements: اكتمال العنوان والمفتاح والمقياس."); },
+      s28: () => { clear(); map.setZoom(8); setTooltip("Dynamic Text: تحديث البيانات آلياً في التصميم."); },
+      s29: () => { clear(); map.flyTo([24, 46], 5); setTooltip("Export: إخراج الخريطة النهائية للعالم."); },
+      s30: () => { clear(); map.flyTo([0, 0], 1); setTooltip("Web Sharing: نشر مشروعك كمنصة تفاعلية."); },
+      s31: () => { clear(); map.flyTo([24.7, 46.7], 10); setTooltip("Web Map: الخريطة السحابية الذكية."); },
+      s32: () => { clear(); map.flyTo([25.2, 55.3], 11); setTooltip("Dashboard: شاشة القرار والمراقبة الحية."); },
+      s33: () => { clear(); map.flyTo([24, 38], 12); setTooltip("Field Maps: العمل الميداني في كفة يدك."); },
+      s34: () => { clear(); map.setZoom(5); setTooltip("Security: حماية البيانات وصلاحيات النظام."); },
+      s35: () => { clear(); map.setZoom(10); setTooltip("Final Review: ضمان جودة المخرجات والنتائج."); },
+      s36: () => { clear(); map.flyTo([34, 40], 6); setTooltip("Archiving: توثيق النجاح وحفظ المستقبل."); },
+      s37: () => { clear(); map.flyTo([24.7136, 46.6753], 6); setTooltip("مشروع التخرج: بصمتك الخاصة في عالم GIS."); },
+      s38: () => { clear(); map.setZoom(10); setTooltip("نصيحة الخبراء: الاستمرار في الممارسة."); },
+      s39: () => { clear(); map.flyTo([30, 31], 5); setTooltip("تطور دائم: المتابعة في مجتمعات الـ GIS."); },
+      s40: () => { clear(); map.flyTo([0, 0], 1); setTooltip("المستوى المتقدم: بوابتك القادمة للاحتراف."); },
+      s41: () => { clear(); map.flyTo([34.1, 40.0], 6); setTooltip("شكر وتقدير: لمرافقتنا في هذه الرحلة."); },
+      s42: () => { clear(); map.flyTo([24, 46], 5); setTooltip("الشهادة: اعتراف بمهاراتك الجغرافية الجديدة."); },
+      s43: () => { clear(); map.flyTo([0, 0], 2); setTooltip("انطلق: العالم ينتظر رؤيتك المكانية."); },
+      s44: () => { clear(); map.flyTo([33, 38], 7); setTooltip("ملخص الـ 7 أيام: رحلة من المفهوم إلى التطبيق."); },
+      s45: () => { clear(); map.flyTo([0, 0], 3); setTooltip("مصادر خارجية: مكتبتك الجغرافية القادمة."); },
+      s46: () => { clear(); map.flyTo([24, 46], 5); setTooltip("وداعاً مؤقتاً "); },
+      s47: () => { clear(); map.flyTo([24.7, 46.7], 6); setTooltip(" فخورون بإنجازكم الكبير."); },
+      s48: () => { clear(); map.setZoom(4); setTooltip("آخر المحطات... استعد للختام."); },
+      s49: () => { clear(); map.flyTo([24.7136, 46.6753], 6); setTooltip("تهانينا! أتممت الدورة بنجاح باهر."); },
+      s50: () => { clear(); map.flyTo([34.8021, 38.9968], 7); setTooltip("شكراً لكم جميعاً! أتممتم الدورة بنجاح."); }
+    };
+
+    const steps = document.querySelectorAll(".step");
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          const num = parseInt(id.replace('s', ''));
+          progressBar.style.width = (num / 50 * 100) + "%";
+          if (actions[id]) actions[id]();
+          steps.forEach(s => s.classList.remove('active'));
+          entry.target.classList.add('active');
+          document.querySelectorAll('.step-icon').forEach(icon => {
+            const iconNum = parseInt(icon.id.replace('icon-s', ''));
+            icon.classList.toggle('active', iconNum === num);
+            icon.classList.toggle('done', iconNum < num);
+          });
+          document.getElementById('prev-btn').disabled = (num === 1);
+          document.getElementById('next-btn').disabled = (num === 50);
+        }
+      });
+    }, { threshold: 0.6 });
+
+    steps.forEach(s => observer.observe(s));
+
+    document.getElementById('next-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.nextElementSibling?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('prev-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.previousElementSibling?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('restart-btn').onclick = () => steps[0].scrollIntoView({ behavior: 'smooth' });
+  </script>
+</body>
+
+</html>

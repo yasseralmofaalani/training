@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اليوم الثاني: التحول الرقمي والتطبيقات الحكومية - دورة GIS المستوى 0</title>
+
+   
+     <link rel="stylesheet" href="css/leaflet.css" />
+
+   <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link href="css/font.css"
+        rel="stylesheet">
+
+    <link href="css/aos.css" rel="stylesheet">
+    <style>
+        @keyframes pulse-soft {
+            0% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes scan {
+            0% {
+                top: 0%;
+            }
+
+            100% {
+                top: 100%;
+            }
+        }
+
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --primary-accent: #3b82f6;
+            --text-main: #1e293b;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: #ffffff;
+            color: var(--text-main);
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        #map-container {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        #scrolly {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .step {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0 5%;
+            margin-bottom: 50vh;
+        }
+
+        .narrative-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 24px;
+            padding: 40px;
+            width: 450px;
+            max-width: 85%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1), inset 0 0 20px rgba(255, 255, 255, 0.2);
+            pointer-events: auto;
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .narrative-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, var(--primary-accent), transparent);
+            opacity: 0;
+            transition: 0.5s;
+        }
+
+        .step.active .narrative-panel::before {
+            opacity: 1;
+        }
+
+        .step.active .narrative-panel {
+            transform: scale(1.02);
+            border-color: var(--primary-accent);
+        }
+
+        .step.fullscreen {
+            justify-content: center;
+            padding: 0;
+        }
+
+        .content-box {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 60px;
+            text-align: center;
+            max-width: 800px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+            pointer-events: auto;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #0f172a;
+            margin-top: 0;
+        }
+
+        p {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            color: #334155;
+        }
+
+        #progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: width 0.3s;
+        }
+
+        #map-tooltip {
+            position: fixed;
+            z-index: 50;
+            top: 30px;
+            left: 30px;
+            background: #b8c4eb;
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 15px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            font-size: 0.95rem;
+            max-width: 300px;
+            font-weight: 700;
+            color: #1e293b;
+            border-right: 5px solid #3b82f6;
+        }
+
+        #step-icons {
+            position: fixed;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 100;
+        }
+        
+        .step-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #64748b;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .step-icon:hover,
+        .step-icon.active {
+            background: #3b82f6;
+            color: white;
+            transform: scale(1.2);
+        }
+
+        .step-icon.done {
+            background: #10b981;
+            color: white;
+        }
+
+        .story-nav {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #3b82f6;
+            transform: translateY(-3px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 900px) {
+            .narrative-panel {
+                width: 90%;
+                margin: 0 auto;
+            }
+
+            .step {
+                justify-content: center;
+                padding: 0 20px;
+            }
+
+            #step-icons {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+    <div id="map-tooltip">اليوم الثاني: التحول الرقمي الحكومي 🏛️</div>
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+    <div id="step-icons"></div>
+
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://unpkg.com/leaflet-ant-path@1.3.0/dist/leaflet-ant-path.js"></script>
+
+    <main id="scrolly">
+        <section id="s1" class="step fullscreen" data-step="s1">
+            <div class="content-box" data-aos="zoom-in">
+                <h1>اليوم الثاني: التحول الرقمي والتطبيقات الحكومية 🏛️</h1>
+                <p>في هذا اليوم، سننتقل من "ما هو الـ GIS؟" إلى "كيف يغيّر الـ GIS طريقة عمل الحكومات؟". سنستكشف كيف
+                    تصبح المدن أذكى والخدمات أسرع بفضل الذكاء المكاني.</p>
+              
+            </div>
+        </section>
+
+        <section id="s2" class="step" data-step="s2">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>التحول الرقمي في الحكومة</h2>
+                <p>لم تعد الحكومة مجرد أوراق ومعاملات، بل أصبحت تدفقاً رقمياً يربط المواطن بالخدمة. الـ GIS هو "الخيط
+                    الذهبي" الذي يربط كل هذه البيانات بمواقعها الجغرافية.</p>
+            </div>
+        </section>
+
+        <section id="s3" class="step" data-step="s3">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>ما هي الحكومة الإلكترونية؟</h2>
+                <p>هي تقديم الخدمات الحكومية عبر الوسائل الإلكترونية. لكن الـ GIS يضيف بُعداً جديداً: أين تتركز الطلبات؟
+                    وأين يجب أن نوجه الموارد؟</p>
+            </div>
+        </section>
+
+        <section id="s4" class="step" data-step="s4">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>الذكاء المكاني (Location Intelligence)</h2>
+                <p>هو القدرة على استخدام الموقع الجغرافي لفهم الأنماط واتخاذ قرارات أفضل. الحكومة التي تعرف "أين" هي
+                    الحكومة التي تنجح في تقديم "ماذا".</p>
+            </div>
+        </section>
+
+        <section id="s5" class="step" data-step="s5">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>رؤية المدن الذكية (Smart Cities)</h2>
+                <p>المدينة الذكية ليست مجرد "تكنولوجيا"، بل هي مدينة تستخدم البيانات لتحسين جودة الحياة، تقليل التكاليف،
+                    وزيادة الفعالية.</p>
+            </div>
+        </section>
+
+        <section id="s6" class="step" data-step="s6">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة الحركة المرورية الذكية</h2>
+                <p>تخيل كاميرات وحساسات ترسل بيانات لحظية للـ GIS، ليقوم آلياً بتعديل توقيت الإشارات المرورية لفك
+                    الاختناقات قبل حدوثها.</p>
+            </div>
+        </section>
+
+        <section id="s7" class="step" data-step="s7">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>التخطيط العمراني (Urban Planning)</h2>
+                <p>استخدام الـ GIS لمحاكاة نمو المدن. هل نحتاج مدرسة جديدة هنا؟ أم حديقة هناك؟ الخريطة تجيب بناءً على
+                    توزيع السكان.</p>
+            </div>
+        </section>
+
+        <section id="s8" class="step" data-step="s8">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>الأمن العام ومكافحة الجريمة</h2>
+                <p>خرائط الكثافة (Heatmaps) تساعد الشرطة في تحديد المناطق الساخنة وتوزيع الدوريات بشكل وقائي بدلاً من رد
+                    الفعل.</p>
+            </div>
+        </section>
+
+        <section id="s9" class="step" data-step="s9">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة شبكات المياه</h2>
+                <p>تتبع الأنابيب تحت الأرض، مراقبة الضغط، وتحديد مواقع التسريبات بدقة متناهية لتقليل الفاقد من المياه.
+                </p>
+            </div>
+        </section>
+
+        <section id="s10" class="step" data-step="s10">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>شبكات الكهرباء الذكية</h2>
+                <p>عند حدوث عطل، يقوم النظام بتحديد موقع الخلل ومكان أقرب فريق صيانة، ويقترح أسرع مسار للوصول.</p>
+            </div>
+        </section>
+
+        <section id="s11" class="step" data-step="s11">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة النفايات (Optimization)</h2>
+                <p>حساب أسرع مسارات لسيارات جمع النفايات بناءً على امتلاء الحاويات (حساسات IoT) لتقليل استهلاك الوقود
+                    والوقت.</p>
+            </div>
+        </section>
+
+        <section id="s12" class="step" data-step="s12">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>مراقبة الجودة البيئية</h2>
+                <p>محطات رصد تلوث الهواء ترسل بياناتها للـ GIS لرسم خرائط لحظية لجودة الهواء في مختلف أحياء المدينة.</p>
+            </div>
+        </section>
+
+        <section id="s13" class="step" data-step="s13">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة الشواطئ والانجراف</h2>
+                <p>استخدام الصور الفضائية والـ GIS لمراقبة تآكل الشواطئ واتخاذ قرارات وقائية لحماية المنشآت الساحلية.
+                </p>
+            </div>
+        </section>
+
+        <section id="s14" class="step" data-step="s14">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>الصحة العامة الحديثة</h2>
+                <p>تتبع انتشار الأوبئة (مثل كورونا) لحظياً وربطها بمراكز توزيع اللقاحات لضمان التغطية المثالية.</p>
+            </div>
+        </section>
+
+        <section id="s15" class="step" data-step="s15">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>تحليل الوصول للمستشفيات</h2>
+                <p>قياس "المسافة الزمنية" للوصول لأقرب مستشفى للطوارئ، وتحديد المناطق التي تعاني من نقص في التغطية
+                    الصحية.</p>
+            </div>
+        </section>
+
+        <section id="s16" class="step" data-step="s16">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>تطوير النقل العام</h2>
+                <p>تحليل مسارات الحافلات والمترو لتتلاءم مع أماكن سكن وعمل الموظفين، مما يقلل الاعتماد على السيارات
+                    الخاصة.</p>
+            </div>
+        </section>
+
+        <section id="s17" class="step" data-step="s17">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>اللوجستيات الحكومية</h2>
+                <p>إدارة أسطول المركبات الحكومية وتتبع حركتها لضمان استخدامها للأغراض المخصصة لها وبأعلى كفاءة.</p>
+            </div>
+        </section>
+
+        <section id="s18" class="step" data-step="s18">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>الزراعة الدقيقة (Precision Farming)</h2>
+                <p>مساعدة المزارعين في فهم خصائص التربة وتوزيع المياه والمبيدات بدقة بناءً على خرائط الـ GIS والصور
+                    الجوية.</p>
+            </div>
+        </section>
+
+        <section id="s19" class="step" data-step="s19">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة الموارد المائية</h2>
+                <p>تتبع مخزون المياه الجوفية والسدود وتخطيط قنوات الري لضمان استدامة الموارد للأجيال القادمة.</p>
+            </div>
+        </section>
+
+        <section id="s20" class="step" data-step="s20">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>السجل العقاري (Cadastre)</h2>
+                <p>أتمتة الملكيات العقارية والحدود، مما يمنع التداخل في الملكيات ويسهل عمليات البيع والشراء والرهن.</p>
+            </div>
+        </section>
+
+        <section id="s21" class="step" data-step="s21">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>تقييم العقارات (Valuation)</h2>
+                <p>تحديد أسعار الأراضي بناءً على موقعها، قربها من الخدمات، وتوجهات السوق المسجلة جغرافياً.</p>
+            </div>
+        </section>
+
+        <section id="s22" class="step" data-step="s22">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>التخطيط التعليمي</h2>
+                <p>تحديد مواقع المدارس الجديدة لضمان عدم اضطرار الطلاب لقطع مسافات طويلة، وتحليل كثافة الطلاب في الفصول.
+                </p>
+            </div>
+        </section>
+
+        <section id="s23" class="step" data-step="s23">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>خرائط السياحة التفاعلية</h2>
+                <p>توفير تطبيقات للسياح تظهر المعالم، الفنادق، والمطاعم مع إمكانية الملاحة والواقع المعزز (AR).</p>
+            </div>
+        </section>
+
+        <section id="s24" class="step" data-step="s24">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>نمذجة الفيضانات</h2>
+                <p>محاكاة غرق المناطق عند هطول أمطار غزيرة، لاتخاذ إجراءات وقائية وتحديد مسارات الإخلاء الآمنة.</p>
+            </div>
+        </section>
+
+        <section id="s25" class="step" data-step="s25">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>الاستجابة للحرائق</h2>
+                <p>تحديد مواقع صنابير المياه، وأسرع الطرق لمكافحة الحريق، وتحليل سرعة انتشار النيران بناءً على الرياح.
+                </p>
+            </div>
+        </section>
+
+        <section id="s26" class="step" data-step="s26">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>تخطيط شبكات 5G</h2>
+                <p>استخدام خرائط الارتفاعات والمباني (3D) لتحديد المواقع الأمثلة لأبراج الاتصالات لضمان تغطية كاملة.</p>
+            </div>
+        </section>
+
+        <section id="s27" class="step" data-step="s27">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>التعداد والتركيبة السكانية</h2>
+                <p>تحويل البيانات الإحصائية الجافة إلى خرائط تنبض بالحياة، تظهر أماكن تركز الشباب، كبار السن، أو
+                    العمالة.</p>
+            </div>
+        </section>
+
+        <section id="s28" class="step" data-step="s28">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>توزيع الخدمات الاجتماعية</h2>
+                <p>رصد مناطق الفقر أو البطالة وتوجيه المساعدات الحكومية والمشاريع التنموية لهذه المناطق بدقة.</p>
+            </div>
+        </section>
+
+        <section id="s29" class="step" data-step="s29">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة التراخيص التجارية</h2>
+                <p>تحليل توزيع الأنشطة التجارية؛ هل هناك تشبع من الصيدليات في هذا الشارع؟ الـ GIS يقدم النصيحة للمستثمر
+                    والحكومة.</p>
+            </div>
+        </section>
+
+        <section id="s30" class="step" data-step="s30">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة الموانئ البحربة</h2>
+                <p>تتبع السفن، وإدارة أرصفة الشحن، ومراقبة حركة الحاويات لزيادة كفاءة التجارة الدولية.</p>
+            </div>
+        </section>
+
+        <section id="s31" class="step" data-step="s31">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة منشآت المطارات</h2>
+                <p>تتبع كل شيء داخل المطار من مدارج الطائرات وحتى أماكن الجلوس، لضمان رحلة مريحة وآمنة للمسافرين.</p>
+            </div>
+        </section>
+
+        <section id="s32" class="step" data-step="s32">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>التوأم الرقمي (Digital Twin)</h2>
+                <p>هو نسخة رقمية طبق الأصل للمدينة في الـ GIS، تمكننا من تجربة أي قرار قبل تنفيذه في الواقع.</p>
+            </div>
+        </section>
+
+        <section id="s33" class="step" data-step="s33">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إنترنت الأشياء (IoT) والـ GIS</h2>
+                <p>ربط الحساسات الميدانية (عدادات كهرباء، مواقف سيارات، براميل نفايات) بالخريطة مباشرة للتحديث اللحظي.
+                </p>
+            </div>
+        </section>
+
+        <section id="s34" class="step" data-step="s34">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>لوحات التحكم (Dashboards)</h2>
+                <p>أداة القائد؛ تعرض أهم المؤشرات في شاشة واحدة: "أين تقع الحوادث الآن؟" "ما هي نسبة الإنجاز في
+                    المشاريع؟"</p>
+            </div>
+        </section>
+
+        <section id="s35" class="step" data-step="s35">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>بوابات البيانات المفتوحة</h2>
+                <p>نشر الخرائط والبيانات للجمهور لزيادة الشفافية والتعاون بين الحكومة والقطاع الخاص.</p>
+            </div>
+        </section>
+
+        <section id="s36" class="step" data-step="s36">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>المشاركة المجتمعية (VGI)</h2>
+                <p>تمكين المواطنين من الإبلاغ عن المشكلات (مثلاً: حفرة في الطريق) عبر تطبيق خرائط يرسل الموقع مباشرة
+                    للبلدية.</p>
+            </div>
+        </section>
+
+        <section id="s37" class="step" data-step="s37">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>تحليل التكلفة والفائدة</h2>
+                <p>إثبات أن الاستثمار في الـ GIS يوفر الملايين عبر تقليل الوقت، الجهد، واستهلاك الموارد في العمليات
+                    اليومية.</p>
+            </div>
+        </section>
+
+        <section id="s38" class="step" data-step="s38">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>البنية التحتية للبيانات المكانية (SDI)</h2>
+                <p>وضع معايير موحدة لتبادل الخرائط والبيانات بين الوزارات المختلفة لضمان عدم تكرار الجهد.</p>
+            </div>
+        </section>
+
+        <section id="s39" class="step" data-step="s39">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>المعايير الدولية (OGC)</h2>
+                <p>الالتزام بلغة برمجية موحدة للخرائط تضمن إمكانية قراءة البيانات عبر أي برنامج أو نظام عالمي.</p>
+            </div>
+        </section>
+
+        <section id="s40" class="step" data-step="s40">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>صناعة السياسات (Evidence-based)</h2>
+                <p>اتخاذ قرارات وطنية مبنية على حقائق مكانية صلبة، وليس على مجرد انطباعات أو توقعات.</p>
+            </div>
+        </section>
+
+        <section id="s41" class="step" data-step="s41">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>التخطيط الإقليمي</h2>
+                <p>النظر في التكامل بين المدن والقرى على مستوى الدولة بأكملها: خطوط الربط الكهربائي، السكك الحديدية،
+                    والطرق الكبرى.</p>
+            </div>
+        </section>
+
+        <section id="s42" class="step" data-step="s42">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة دورة حياة البنية التحتية</h2>
+                <p>من التصميم، إلى التنفيذ، ثم الصيانة، وأخيراً الاستبدال. الـ GIS يرافق المشروع في كل مراحل عمره.</p>
+            </div>
+        </section>
+
+        <section id="s43" class="step" data-step="s43">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>إدارة الانتخابات</h2>
+                <p>توزيع الدوائر الانتخابية، تحديد مواقع مراكز الاقتراع، وتحليل نتائج التصويت جغرافياً لفهم توجهات
+                    الناخبين.</p>
+            </div>
+        </section>
+
+        <section id="s44" class="step" data-step="s44">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>الأمن الوطني (مقدمة)</h2>
+                <p>الـ GIS هو حجر الزاوية في حماية الحدود، العمليات الاستخباراتية، والتخطيط العسكري (وهو ما سنتوسع فيه
+                    لاحقاً).</p>
+            </div>
+        </section>
+
+        <section id="s45" class="step" data-step="s45">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>المناطق الاقتصادية الخاصة</h2>
+                <p>تحديد أفضل المواقع للمصانع والشركات العالمية لجذب الاستثمارات وتوفير فرص العمل بناءً على الموقع
+                    الاستراتيجي.</p>
+            </div>
+        </section>
+
+        <section id="s46" class="step" data-step="s46">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>التخطيط المكاني البحري</h2>
+                <p>تنظيم استخدام البحار: ممرات السفن، مناطق الصيد، محطات الرياح البحرية، والمحميات المائية.</p>
+            </div>
+        </section>
+
+        <section id="s47" class="step" data-step="s47">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>حماية الحياة البرية</h2>
+                <p>تتبع الحيوانات المهاجرة، مراقبة الغابات، ومنع التعدي على المحميات الطبيعية باستخدام الاستشعار عن بعد
+                    والـ GIS.</p>
+            </div>
+        </section>
+
+        <section id="s48" class="step" data-step="s48">
+            <div class="narrative-panel" data-aos="fade-right">
+                <h2>مستقبل الذكاء الاصطناعي (GeoAI)</h2>
+                <p>دمج الـ AI مع الـ GIS لاكتشاف التغييرات آلياً من الأقمار الصناعية (مثل بناء مبنى كشفه الذكاء
+                    الاصطناعي تلقائياً).</p>
+            </div>
+        </section>
+
+        <section id="s49" class="step fullscreen" data-step="s49">
+            <div class="content-box" data-aos="zoom-in">
+                <h1 style="color: #10b981;"> أتممت اليوم الثاني  </h1>
+                <p>لقد استكشفت قوة الـ GIS في قيادة الحكومات المعاصرة. غداً، سنتعلم كيف نستخدم الأداة التي تبني كل هذا:
+                    الـ ArcGIS Pro.</p>
+                <div style="margin-top: 30px;"><a href="day3.html" class="nav-btn" style="text-decoration:none;">إلى
+                        أدوات الاحتراف ➔</a></div>
+            </div>
+        </section>
+
+        <section id="s50" class="step fullscreen" data-step="s50">
+            <div class="content-box" data-aos="zoom-in">
+                <h2>نراكم في اليوم الثالث ❤️</h2>
+               
+                <button class="nav-btn" onclick="window.scrollTo({top:0, behavior:'smooth'})">العودة للبداية 🔝</button>
+            </div>
+        </section>
+    </main>
+
+    <div class="story-nav">
+        <button id="prev-btn" class="nav-btn" disabled>السابق</button>
+        <button id="next-btn" class="nav-btn">التالي</button>
+        <button id="restart-btn" class="nav-btn">إعادة</button>
+    </div>
+
+    <script type="module">
+        import L from 'https://esm.sh/leaflet';
+
+        const map = L.map('map', {
+            zoomControl: false, scrollWheelZoom: false, dragging: false,
+            attributionControl: false, doubleClickZoom: false
+        }).setView([24.7136, 46.6753], 6); // المركز على الرياض كبداية للمدن الذكية
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', { zIndex: 1000 }).addTo(map);
+        const analysisLayer = L.layerGroup().addTo(map);
+
+        const tooltipBox = document.getElementById("map-tooltip");
+        const progressBar = document.getElementById("progress-bar");
+        const iconsContainer = document.getElementById("step-icons");
+
+        function setTooltip(text) { tooltipBox.innerHTML = text; }
+        function clear() { analysisLayer.clearLayers(); }
+
+        for (let i = 1; i <= 50; i++) {
+            const icon = document.createElement('div');
+            icon.className = 'step-icon'; icon.innerText = i; icon.id = `icon-s${i}`;
+            icon.onclick = () => document.getElementById(`s${i}`)?.scrollIntoView({ behavior: 'smooth' });
+            iconsContainer.appendChild(icon);
+        }
+
+        const actions = {
+            s1: () => { clear(); map.flyTo([24.7136, 46.6753], 6); setTooltip("مرحباً بك في اليوم الثاني: تطبيقات الحكومة الذكية."); },
+            s2: () => { clear(); map.flyTo([24.71, 46.67], 11); setTooltip("التحول الرقمي: بناء الجسور بين المواطن والخدمة."); },
+            s3: () => { clear(); map.flyTo([30.0444, 31.2357], 10); setTooltip("الحكومة الإلكترونية: تحسين كفاءة الخدمات العامة."); },
+            s4: () => { clear(); map.flyTo([25.2048, 55.2708], 12); setTooltip("الذكاء المكاني: اتخاذ القرارات بناءً على الموقع."); },
+            s5: () => { clear(); map.flyTo([25.2048, 55.2708], 13); setTooltip("المدن الذكية: دبي كنموذج رائد عالمياً."); },
+            s6: () => {
+                clear();
+                L.polyline([[25.2, 55.2], [25.25, 55.3], [25.3, 55.35]], { color: '#3b82f6', pulseColor: '#ffffff', dashArray: [10, 20] }).addTo(analysisLayer);
+                setTooltip("إدارة المرور: تدفق البيانات اللحظي لفك الاختناقات.");
+            },
+            s7: () => {
+                clear();
+                L.polygon([[25.1, 55.2], [25.15, 55.2], [25.15, 55.25], [25.1, 55.25]], { color: '#fbbf24', fillOpacity: 0.3, weight: 2 }).addTo(analysisLayer);
+                setTooltip("التخطيط العمراني: محاكاة نمو المدن وموازنة الخدمات.");
+            },
+            s8: () => {
+                clear();
+                L.circleMarker([25.2, 55.2], { color: '#ef4444', radius: 15, className: 'pulse' }).addTo(analysisLayer);
+                setTooltip("الأمن العام: تحديد المناطق الساخنة وتوزيع الدوريات.");
+            },
+            s9: () => {
+                clear();
+                L.polyline([[24.7, 46.7], [24.72, 46.75], [24.75, 46.8]], { color: '#06b6d4', weight: 4 }).addTo(analysisLayer);
+                setTooltip("شبكات المياه: تتبع الأنابيب ومراقبة الضغط لحظياً.");
+            },
+            s10: () => {
+                clear();
+                L.marker([24.74, 46.74]).addTo(analysisLayer);
+                L.circle([24.74, 46.74], { radius: 2000, color: '#f59e0b', fillOpacity: 0.1 }).addTo(analysisLayer);
+                setTooltip("الكهرباء الذكية: استجابة فورية وتحديد دقيق للأعطال.");
+            },
+            s11: () => {
+                clear();
+                map.flyTo([24.7, 46.7], 14);
+                L.polyline([[24.68, 46.68], [24.72, 46.72]], { color: '#10b981' }).addTo(analysisLayer);
+                setTooltip("إدارة النفايات: تحسين مسارات الجمع لتقليل الفاقد.");
+            },
+            s12: () => {
+                clear();
+                L.circle([24.7, 46.7], { radius: 5000, color: '#10b981', weight: 1, fillOpacity: 0.2 }).addTo(analysisLayer);
+                setTooltip("البيئة: مراقبة جودة الهواء وحماية الأحياء السكنية.");
+            },
+            s13: () => { clear(); map.flyTo([27.0, 35.0], 10); setTooltip("حماية الشواطئ: مراقبة التآكل الساحلي بالـ GIS."); },
+            s14: () => {
+                clear();
+                map.flyTo([30.0444, 31.2357], 11);
+                L.circleMarker([30.05, 31.24], { color: 'red', radius: 20 }).addTo(analysisLayer);
+                setTooltip("الصحة العامة: تتبع انتشار الأوبئة وتوزيع الموارد.");
+            },
+            s15: () => {
+                clear();
+                L.circle([30.04, 31.23], { radius: 3000, color: '#3b82f6', weight: 2 }).addTo(analysisLayer);
+                setTooltip("الوصول للمستشفيات: قياس زمن الاستجابة للطوارئ.");
+            },
+            s33: () => {
+                clear();
+                L.circleMarker([24.7, 46.7], { radius: 15, color: '#f97316', fillOpacity: 0.8 }).addTo(analysisLayer);
+                L.polyline([[24.68, 46.68], [24.7, 46.7]], { color: '#f97316' }).addTo(analysisLayer);
+                setTooltip("IoT والـ GIS: ربط الحساسات الميدانية بالخريطة مباشرة.");
+            },
+            s48: () => {
+                clear();
+                map.setZoom(14);
+                const scanArea = L.polygon([[24.7, 46.69], [24.71, 46.69], [24.71, 46.71], [24.7, 46.71]], { color: '#10b981', weight: 1, fillOpacity: 0.1 }).addTo(analysisLayer);
+                setTooltip("GeoAI: استخدام الذكاء الاصطناعي لاكتشاف التغييرات آلياً.");
+            },
+            s49: () => { clear(); map.flyTo([24.7, 46.7], 6); setTooltip("تهانينا! لقد أتممت اليوم الثاني بجدارة."); },
+            s50: () => { clear(); map.flyTo([24.7136, 46.6753], 6); setTooltip("نراكم غداً لنبدأ العمل على ArcGIS Pro."); }
+        };
+
+        const steps = document.querySelectorAll(".step");
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+                    const num = parseInt(id.replace('s', ''));
+                    progressBar.style.width = (num / 50 * 100) + "%";
+                    if (actions[id]) actions[id]();
+                    steps.forEach(s => s.classList.remove('active'));
+                    entry.target.classList.add('active');
+                    document.querySelectorAll('.step-icon').forEach(icon => {
+                        const iconNum = parseInt(icon.id.replace('icon-s', ''));
+                        icon.classList.toggle('active', iconNum === num);
+                        icon.classList.toggle('done', iconNum < num);
+                    });
+                    document.getElementById('prev-btn').disabled = (num === 1);
+                    document.getElementById('next-btn').disabled = (num === 50);
+                }
+            });
+        }, { threshold: 0.6 });
+
+        steps.forEach(s => observer.observe(s));
+        AOS.init({ duration: 800, once: false });
+
+        document.getElementById('next-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.nextElementSibling?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('prev-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.previousElementSibling?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('restart-btn').onclick = () => steps[0].scrollIntoView({ behavior: 'smooth' });
+    </script>
+</body>
+
+</html>

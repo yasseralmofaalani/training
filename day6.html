@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>اليوم السادس: دورة حياة المشروع - دورة GIS المستوى 0</title>
+
+   <link rel="stylesheet" href="css/leaflet.css" />
+
+   <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link href="css/font.css"
+        rel="stylesheet">
+
+  <style>
+    :root {
+      --glass-bg: rgba(15, 23, 42, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --primary-accent: #3b82f6;
+      --text-main: #1e293b;
+    }
+
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #ffffff;
+      color: var(--text-main);
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    #map-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    #scrolly {
+      position: relative;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .step {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 5%;
+      margin-bottom: 50vh;
+    }
+
+    .narrative-panel {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 40px;
+      width: 450px;
+      max-width: 85%;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+      pointer-events: auto;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .step.active .narrative-panel {
+      transform: scale(1.02);
+      border-color: var(--primary-accent);
+    }
+
+    .step.fullscreen {
+      justify-content: center;
+      padding: 0;
+    }
+
+    .content-box {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 32px;
+      padding: 60px;
+      text-align: center;
+      max-width: 800px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+      pointer-events: auto;
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: #0f172a;
+      margin-top: 0;
+    }
+
+    p {
+      font-size: 1.15rem;
+      line-height: 1.8;
+      color: #334155;
+    }
+
+    #progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.05);
+      z-index: 1000;
+    }
+
+    #progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      transition: width 0.3s;
+    }
+
+    #map-tooltip {
+      position: fixed;
+      z-index: 50;
+      top: 30px;
+      right: 30px;
+      background: #b8c4eb;
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      padding: 15px 20px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      font-size: 0.95rem;
+      max-width: 300px;
+      font-weight: 700;
+      color: #1e293b;
+      border-right: 5px solid #3b82f6;
+    }
+
+    #step-icons {
+      position: fixed;
+      left: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: #64748b;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .step-icon:hover,
+    .step-icon.active {
+      background: #3b82f6;
+      color: white;
+      transform: scale(1.2);
+    }
+
+    .step-icon.done {
+      background: #10b981;
+      color: white;
+    }
+
+    .story-nav {
+      position: fixed;
+      bottom: 30px;
+      left: 30px;
+      z-index: 1000;
+      display: flex;
+      gap: 15px;
+    }
+
+    .nav-btn {
+      background: #3280ff;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: #3b82f6;
+      transform: translateY(-3px);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 900px) {
+      .narrative-panel {
+        width: 90%;
+        margin: 0 auto;
+      }
+
+      .step {
+        justify-content: center;
+        padding: 0 20px;
+      }
+
+      #step-icons {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+  <div id="map-tooltip">مرحباً بك في اليوم السادس 👋</div>
+  <div id="map-container">
+    <div id="map"></div>
+  </div>
+  <div id="step-icons"></div>
+
+  <main id="scrolly">
+    <!-- Slides 1 - 50 -->
+    <section id="s1" class="step fullscreen" data-step="s1">
+      <div class="content-box">
+        <h1>اليوم السادس: بناء مشروع GIS من الصفر 🏗️</h1>
+        <p>سنتعلم اليوم خارطة الطريق لبناء نظام معلومات جغرافي متكامل، من ولادة الفكرة إلى التطبيق الفعلي على الويب.</p>
+       
+    </section>
+
+    <section id="s2" class="step" data-step="s2">
+      <div class="narrative-panel">
+        <h2>ما هو مشروع GIS؟</h2>
+        <p>هو نظام يجمع البيانات والموقع والتحليل لإنتاج معلومة تدعم اتخاذ القرار، وليس مجرد رسم خريطة.</p>
+      </div>
+    </section>
+    <section id="s3" class="step" data-step="s3">
+      <div class="narrative-panel">
+        <h2>المرحلة 1: التخطيط والمتطلبات</h2>
+        <p>كل مشروع ناجح يبدأ بسؤال: ما هي المشكلة التي نحاول حلها؟ وما هي مخرجات النظام المطلوبة؟</p>
+      </div>
+    </section>
+    <section id="s4" class="step" data-step="s4">
+      <div class="narrative-panel">
+        <h2>تحديد منطقة الدراسة (AOI)</h2>
+        <p>تحديد النطاق الجغرافي للعمل يمنع تشتت الجهود ويساعد في تقدير حجم البيانات المطلوبة بدقة.</p>
+      </div>
+    </section>
+    <section id="s5" class="step" data-step="s5">
+      <div class="narrative-panel">
+        <h2>تحديد أصحاب المصلحة</h2>
+        <p>من سيستخدم النظام؟ المدراء، الفنيون، أم الجمهور؟ فهم المستخدم هو سر نجاح واجهة المشروع.</p>
+      </div>
+    </section>
+    <section id="s6" class="step" data-step="s6">
+      <div class="narrative-panel">
+        <h2>المرحلة 2: تصميم البيانات</h2>
+        <p>بناء "خطة" لقاعدة البيانات: ما هي الطبقات المطلوبة؟ وما هي الحقول والخصائص لكل طبقة؟</p>
+      </div>
+    </section>
+    <section id="s7" class="step" data-step="s7">
+      <div class="narrative-panel">
+        <h2>اختيار نظام الإحداثيات</h2>
+        <p>توحيد نظام الإسقاط لضمان تطابق الطبقات ودقة القياسات الجيومكانية داخل المشروع.</p>
+      </div>
+    </section>
+    <section id="s8" class="step" data-step="s8">
+      <div class="narrative-panel">
+        <h2>المرحلة 3: جمع البيانات</h2>
+        <p>البحث عن مصادر البيانات المتوفرة (أقمار صناعية، ملفات Excel، مسوحات قديمة) وتحديد النقص.</p>
+      </div>
+    </section>
+    <section id="s9" class="step" data-step="s9">
+      <div class="narrative-panel">
+        <h2>الرقمنة وحقن البيانات</h2>
+        <p>تحويل الخرائط الورقية والصور إلى عناصر رقمية حية (نقاط، خطوط، مضلعات) داخل البرنامج.</p>
+      </div>
+    </section>
+    <section id="s10" class="step" data-step="s10">
+      <div class="narrative-panel">
+        <h2>الجمع الميداني (Field Collection)</h2>
+        <p>استخدام الهواتف الذكية لجمع بيانات واقعية من الميدان وربطها مباشرة بقاعدة البيانات المركزية.</p>
+      </div>
+    </section>
+
+    <section id="s11" class="step" data-step="s11">
+      <div class="narrative-panel">
+        <h2>المرحلة 4: جودة البيانات</h2>
+        <p>التأكد من خلو البيانات من الأخطاء الهندسية (Topology) والوصفية لضمان نتائج تحليل موثوقة.</p>
+      </div>
+    </section>
+    <section id="s12" class="step" data-step="s12">
+      <div class="narrative-panel">
+        <h2>بناء قاعدة البيانات الجغرافية (GDB)</h2>
+        <p>تنظيم الطبقات داخل وعاء واحد ذكي يدعم العلاقات المعقدة بين المعالم الجغرافية.</p>
+      </div>
+    </section>
+    <section id="s13" class="step" data-step="s13">
+      <div class="narrative-panel">
+        <h2>المرحلة 5: التحليل المكانى</h2>
+        <p>استخدام أدوات المعالجة الجغرافية لاكتشاف الأنماط والعلاقات التي لا تراها العين المجردة.</p>
+      </div>
+    </section>
+    <section id="s14" class="step" data-step="s14">
+      <div class="narrative-panel">
+        <h2>تحليل التراكب (Overlay)</h2>
+        <p>دمج عدة طبقات معاً (التربة + المنحدر + المناخ) لتحديد أفضل المواقع لمشروع زراعي مثلاً.</p>
+      </div>
+    </section>
+    <section id="s15" class="step" data-step="s15">
+      <div class="narrative-panel">
+        <h2>تحليل القرب (Proximity)</h2>
+        <p>تحديد مدى قرب الخدمات من السكان، مثل معرفة المناطق التي تقع خارج تغطية مراكز الإطفاء.</p>
+      </div>
+    </section>
+    <section id="s16" class="step" data-step="s16">
+      <div class="narrative-panel">
+        <h2>التحليل الشبكي (Network Analysis)</h2>
+        <p>حساب أسرع الطرق وتخطيط رحلات الإمداد اللوجستي وتوزيع الخدمات بكفاءة عالية.</p>
+      </div>
+    </section>
+    <section id="s17" class="step" data-step="s17">
+      <div class="narrative-panel">
+        <h2>أتمتة العمل (ModelBuilder)</h2>
+        <p>بناء تدفقات عمل آلية لتنفيذ المهام المتكررة بضغطة زر واحدة لتوفير الوقت والجهد.</p>
+      </div>
+    </section>
+    <section id="s18" class="step" data-step="s18">
+      <div class="narrative-panel">
+        <h2>المرحلة 6: الإخراج والتصميم</h2>
+        <p>تحويل نتائج التحليل إلى خرائط احترافية سهلة الفهم باستخدام قواعد الكارتوغرافيا المتقدمة.</p>
+      </div>
+    </section>
+    <section id="s19" class="step" data-step="s19">
+      <div class="narrative-panel">
+        <h2>المرحلة 7: مشاركة المشروع</h2>
+        <p>نشر الخريطة على الإنترنت (Web GIS) لتصل إلى المستخدمين في أي وقت ومن أي مكان.</p>
+      </div>
+    </section>
+    <section id="s20" class="step" data-step="s20">
+      <div class="narrative-panel">
+        <h2>بناء النوافذ المنبثقة (Popups)</h2>
+        <p>تصميم واجهات عرض البيانات لتظهر بشكل جذاب ومنظم عند الضغط على أي معلم في الخريطة.</p>
+      </div>
+    </section>
+
+    <section id="s21" class="step" data-step="s21">
+      <div class="narrative-panel">
+        <h2>لوحات المعلومات التفاعلية</h2>
+        <p>ربط الخريطة برسوم بيانية حية (Dashboards) لتعطي صورة إحصائية فورية عن تقدم المشروع.</p>
+      </div>
+    </section>
+    <section id="s22" class="step" data-step="s22">
+      <div class="narrative-panel">
+        <h2>خرائط القصة (StoryMaps)</h2>
+        <p>تقديم نتائج المشروع بأسلوب سردي يجمع بين الخرائط والصور والنصوص لإقناع صانعي القرار.</p>
+      </div>
+    </section>
+    <section id="s23" class="step" data-step="s23">
+      <div class="narrative-panel">
+        <h2>المرحلة 8: التشغيل والصيانة</h2>
+        <p>مراقبة أداء النظام وتحديث البيانات دورياً لضمان بقائه فعالاً ومواكباً للتغيرات الميدانية.</p>
+      </div>
+    </section>
+    <section id="s24" class="step" data-step="s24">
+      <div class="narrative-panel">
+        <h2>تأمين البيانات والصلاحيات</h2>
+        <p>تحديد من يملك حق المشاهدة ومن يملك حق التعديل لحماية الخصوصية والأمن المعلوماتي.</p>
+      </div>
+    </section>
+    <section id="s25" class="step" data-step="s25">
+      <div class="narrative-panel">
+        <h2>تطبيقات البلديات (Municipal GIS)</h2>
+        <p>نموذج عملي: إدارة شبكات الصرف الصحي والإنارة والطرق باستخدام نظم المعلومات الجغرافية.</p>
+      </div>
+    </section>
+    <section id="s26" class="step" data-step="s26">
+      <div class="narrative-panel">
+        <h2>إدارة خدمات المجتمع</h2>
+        <p>تحسين توزيع المدارس والمراكز الصحية والحدائق العامة بناءً على الكثافة السكانية الحقيقية.</p>
+      </div>
+    </section>
+    <section id="s27" class="step" data-step="s27">
+      <div class="narrative-panel">
+        <h2>GIS في التنمية المستدامة</h2>
+        <p>استخدام التحليل المكاني لمراقبة الموارد الطبيعية وحمايتها للأجيال القادمة.</p>
+      </div>
+    </section>
+    <section id="s28" class="step" data-step="s28">
+      <div class="narrative-panel">
+        <h2>بناء تطبيقات الويب (Web Apps)</h2>
+        <p>استخدام أدوات جاهزة (No-code) لبناء تطبيقات متخصصة لجمع البلاغات أو عرض الخدمات.</p>
+      </div>
+    </section>
+    <section id="s29" class="step" data-step="s29">
+      <div class="narrative-panel">
+        <h2>تكامل الأنظمة</h2>
+        <p>ربط برنامج GIS مع الأنظمة الأخرى في المؤسسة مثل ERP أو أنظمة تتبع المركبات.</p>
+      </div>
+    </section>
+    <section id="s30" class="step" data-step="s30">
+      <div class="narrative-panel">
+        <h2>التدريب ونقل المعرفة</h2>
+        <p>تدريب الكوادر الفنية على استخدام النظام لضمان استمرارية العمل وتطويره ذاتياً.</p>
+      </div>
+    </section>
+
+    <section id="s31" class="step" data-step="s31">
+      <div class="narrative-panel">
+        <h2>تحليل العائد على الاستثمار (ROI)</h2>
+        <p>إثبات كيف وفر نظام GIS الوقت والمال وحسن جودة الخدمات الحكومية.</p>
+      </div>
+    </section>
+    <section id="s32" class="step" data-step="s32">
+      <div class="narrative-panel">
+        <h2>نمذجة المدن ثلاثية الأبعاد (3D)</h2>
+        <p>بناء توأم رقمي للمدينة يساعد في تخطيط الأبنية وظلالها وتدفق الهواء وحركة المرور.</p>
+      </div>
+    </section>
+    <section id="s33" class="step" data-step="s33">
+      <div class="narrative-panel">
+        <h2>الاستشعار عن بعد في المشاريع</h2>
+        <p>الاعتماد على صور الأقمار لإجراء تحليلات زمنية واسعة النطاق دون الحاجة للتواجد الميداني.</p>
+      </div>
+    </section>
+    <section id="s34" class="step" data-step="s34">
+      <div class="narrative-panel">
+        <h2>تحليل الفقر والتنمية البشرية</h2>
+        <p>توجيه المساعدات والمشاريع التنموية للمناطق الأكثر احتياجاً بناءً على خرائط الفقر.</p>
+      </div>
+    </section>
+    <section id="s35" class="step" data-step="s35">
+      <div class="narrative-panel">
+        <h2>إدارة العقارات والأملاك</h2>
+        <p>توثيق حدود الملكيات وربطها بالبيانات القانونية لمنع النزاعات وتسهيل الاستثمار.</p>
+      </div>
+    </section>
+    <section id="s36" class="step" data-step="s36">
+      <div class="narrative-panel">
+        <h2>مراقبة النقل العام</h2>
+        <p>تحسين مسارات الحافلات وتوقيتاتها لاختصار زمن الرحلة وتقليل الازدحام المروري.</p>
+      </div>
+    </section>
+    <section id="s37" class="step" data-step="s37">
+      <div class="narrative-panel">
+        <h2>الاستجابة للكوارث الطبيعية</h2>
+        <p>خرائط حية لمواقع الفيضانات أو الزلازل لتوجيه فرق الإنقاذ للمناطق المتضررة فوراً.</p>
+      </div>
+    </section>
+    <section id="s38" class="step" data-step="s38">
+      <div class="narrative-panel">
+        <h2>GIS والمشاركة المجتمعية</h2>
+        <p>إشراك المواطنين في تحسين مدينتهم عبر تطبيقات إرسال البلاغات الجغرافية.</p>
+      </div>
+    </section>
+    <section id="s39" class="step" data-step="s39">
+      <div class="narrative-panel">
+        <h2>التعامل مع البيانات الضخمة (Big Data)</h2>
+        <p>تحليل ملايين السجلات الجغرافية (مثل نقاط GPS للسيارات) لفهم حركة المدينة.</p>
+      </div>
+    </section>
+    <section id="s40" class="step" data-step="s40">
+      <div class="narrative-panel">
+        <h2>منصة GIS الموحدة</h2>
+        <p>هدفنا النهائي: بناء خريطة واحدة موحدة تضم كافة بيانات القطاعات لخدمة الوطن.</p>
+      </div>
+    </section>
+
+    <section id="s41" class="step" data-step="s41">
+      <div class="narrative-panel">
+        <h2>الذكاء الاصطناعي الجيومكاني (GeoAI)</h2>
+        <p>مستقبل المشاريع: استخدام التعلم الآلي لاكتشاف التغيرات وتوقع النمو العمراني آلياً.</p>
+      </div>
+    </section>
+    <section id="s42" class="step" data-step="s42">
+      <div class="narrative-panel">
+        <h2>الحوسبة السحابية (Cloud GIS)</h2>
+        <p>العمل على الخرائط من أي متصفح دون الحاجة لتنصيب برمجيات ثقيلة على الأجهزة.</p>
+      </div>
+    </section>
+    <section id="s43" class="step" data-step="s43">
+      <div class="narrative-panel">
+        <h2>معايير البيانات العالمية (OGC)</h2>
+        <p>ضمان أن مشروعك يتحدث لغة البرمجيات الأخرى عالمياً لتسهيل تبادل المعلومات.</p>
+      </div>
+    </section>
+    <section id="s44" class="step" data-step="s44">
+      <div class="narrative-panel">
+        <h2>الأمن السيبراني للمشاريع</h2>
+        <p>حماية قاعدة بياناتك من الاختراقات لضمان استمرارية الخدمات الحيوية للدولة.</p>
+      </div>
+    </section>
+    <section id="s45" class="step" data-step="s45">
+      <div class="narrative-panel">
+        <h2>دمج البيانات التاريخية</h2>
+        <p>رؤية تطور المدينة عبر الزمن لفهم كيفية نموها والتنبؤ بمستقبلها العمراني.</p>
+      </div>
+    </section>
+    <section id="s46" class="step" data-step="s46">
+      <div class="narrative-panel">
+        <h2>الابتكار في العرض الخريطي</h2>
+        <p>استخدام تقنيات الواقع المعزز (AR) لعرض بيانات المرافق التحتية في الميدان مباشرة.</p>
+      </div>
+    </section>
+    <section id="s47" class="step" data-step="s47">
+      <div class="narrative-panel">
+        <h2>الخلاصة: أنت الآن مهندس مشاريع</h2>
+        <p>أصبح لديك الآن المنهجية الكاملة لبدء وبناء وإدارة أي مشروع GIS بنجاح.</p>
+      </div>
+    </section>
+    <section id="s48" class="step" data-step="s48">
+      <div class="narrative-panel">
+        <h2>خطوتك القادمة</h2>
+        <p>لا تتوقف عند النظرية؛ غداً هو يوم التطبيق العملي الكامل داخل البرنامج.</p>
+      </div>
+    </section>
+    <section id="s49" class="step fullscreen" data-step="s49">
+      <div class="content-box">
+        <h1 style="color: #10b981;"> أتممت اليوم السادس 🎉</h1>
+        <p>لقد صممت الآن مشروعك الأول ذهنياً، وأنت جاهز للتنفيذ الفعلي.</p>
+        <div style="margin-top: 30px;"><a href="day7.html" class="nav-btn" style="text-decoration:none;">اليوم السابع
+            ➔</a></div>
+      </div>
+    </section>
+    <section id="s50" class="step fullscreen" data-step="s50">
+      <div class="content-box">
+        <h2>نراكم غداً...</h2>
+        <p>في اليوم السابع والأخير: التطبيق العملي الكامل وبناء مشروع التخرج.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="story-nav">
+    <button id="prev-btn" class="nav-btn" disabled>السابق</button>
+    <button id="next-btn" class="nav-btn">التالي</button>
+    <button id="restart-btn" class="nav-btn">إعادة</button>
+  </div>
+
+  <script type="module">
+    import L from 'https://esm.sh/leaflet';
+
+    const map = L.map('map', {
+      zoomControl: false, scrollWheelZoom: false, dragging: false,
+      attributionControl: false, doubleClickZoom: false
+    }).setView([33.5, 36.3], 12);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', { zIndex: 1000 }).addTo(map);
+    const analysisLayer = L.layerGroup().addTo(map);
+
+    const tooltipBox = document.getElementById("map-tooltip");
+    const progressBar = document.getElementById("progress-bar");
+    const iconsContainer = document.getElementById("step-icons");
+
+    function setTooltip(text) { tooltipBox.innerHTML = text; }
+    function clear() { analysisLayer.clearLayers(); }
+
+    for (let i = 1; i <= 50; i++) {
+      const icon = document.createElement('div');
+      icon.className = 'step-icon'; icon.innerText = i; icon.id = `icon-s${i}`;
+      icon.onclick = () => document.getElementById(`s${i}`)?.scrollIntoView({ behavior: 'smooth' });
+      iconsContainer.appendChild(icon);
+    }
+
+    const actions = {
+      s1: () => { clear(); map.flyTo([24.7136, 46.6753], 6); setTooltip("اليوم السادس: بناء مشروع GIS من الصفر."); },
+      s2: () => { clear(); map.flyTo([24.71, 46.67], 12); setTooltip("مشروع GIS: الربط بين البيانات والمكان والقرار."); },
+      s3: () => { clear(); map.flyTo([24.7, 46.7], 10); setTooltip("التخطيط: تحديد الأهداف وحل المشكلات المكانية."); },
+      s4: () => { clear(); L.polygon([[24.6, 46.6], [24.8, 46.6], [24.8, 46.8], [24.6, 46.8]], { color: 'blue', fillOpacity: 0.1 }).addTo(analysisLayer); setTooltip("AOI: تحديد النطاق الجغرافي للعمل بدقة."); },
+      s5: () => { clear(); map.flyTo([24.71, 46.67], 14); setTooltip("المستخدمون: تصميم النظام ليلبي حاجة الإنسان."); },
+      s6: () => { clear(); map.flyTo([0, 0], 2); setTooltip("تصميم البيانات: بناء هيكل قاعدة البيانات الذكية."); },
+      s7: () => { clear(); map.flyTo([24, 46], 5); setTooltip("نظم الإحداثيات: ضمان دقة القياسات والنتائج."); },
+      s8: () => { clear(); map.flyTo([25.2, 55.3], 10); setTooltip("جمع البيانات: البحث عن المصادر الفضائية والأرضية."); },
+      s9: () => { clear(); L.polyline([[25.2, 55.2], [25.3, 55.3]], { color: 'black' }).addTo(analysisLayer); setTooltip("الرقمنة: تحويل الواقع إلى عناصر برمجية حية."); },
+      s10: () => { clear(); L.marker([25.21, 55.28]).addTo(analysisLayer); setTooltip("Field Collection: البيانات من الميدان إلى السحابة."); },
+      s11: () => { clear(); map.setZoom(15); setTooltip("QA/QC: التدقيق الهندسي والوصفي للبيانات."); },
+      s12: () => { clear(); L.circle([24.7, 46.7], { radius: 5000, color: 'blue' }).addTo(analysisLayer); setTooltip("Geodatabase: التنظيم هو سر نجاح المشاريع الكبرى."); },
+      s13: () => { clear(); map.flyTo([34, 39], 10); setTooltip("Spatial Analysis: استنطاق الخريطة لكشف الحقائق."); },
+      s14: () => { clear(); L.polygon([[34, 39], [34.1, 39], [34.1, 39.1], [34, 39.1]], { color: 'green', fillOpacity: 0.4 }).addTo(analysisLayer); setTooltip("Overlay Analysis: دمج الطبقات لاتخاذ القرار أمثلي."); },
+      s15: () => { clear(); L.circle([34.05, 39.05], { radius: 3000, color: 'red' }).addTo(analysisLayer); setTooltip("Proximity: قياس المسافات والوصول للخدمات."); },
+      s16: () => { clear(); L.polyline([[34, 39], [34.2, 39.2]], { color: 'purple', weight: 5 }).addTo(analysisLayer); setTooltip("Network: تحسين مسارات النقل والتوزيع."); },
+      s17: () => { clear(); map.setZoom(12); setTooltip("ModelBuilder: أتمتة الخطوات لتجنب الأخطاء البشرية."); },
+      s18: () => { clear(); map.flyTo([24.7, 46.7], 11); setTooltip("Cartography: الخريطة كلوحة فنية وعلمية."); },
+      s19: () => { clear(); map.flyTo([0, 0], 3); setTooltip("Web GIS: وصول مشروعك للعالم عبر الإنترنت."); },
+      s20: () => { clear(); L.marker([24.71, 46.67]).addTo(analysisLayer); setTooltip("Popups: عرض التفاصيل بذكاء وتفاعل."); },
+      s21: () => { clear(); map.flyTo([25.2, 55.3], 12); setTooltip("Dashboards: نبض المشروع في شاشة واحدة."); },
+      s22: () => { clear(); map.flyTo([35, 39], 8); setTooltip("StoryMaps: سرد قصة النجاح الجغرافي."); },
+      s23: () => { clear(); map.setZoom(10); setTooltip("Maintenance: الحفاظ على حيوية ودقة البيانات."); },
+      s24: () => { clear(); map.setZoom(8); setTooltip("Security: حماية المعلومات هي سيادة وطنية."); },
+      s25: () => { clear(); L.polyline([[24.7, 46.7], [24.75, 46.75]], { color: 'blue' }).addTo(analysisLayer); setTooltip("الخدمات البلدية: منارة المدن الذكية."); },
+      s26: () => { clear(); L.circleMarker([24.8, 46.8], { radius: 10, color: 'green' }).addTo(analysisLayer); setTooltip("توزيع الخدمات: المدارس والمراكز الصحية للجميع."); },
+      s27: () => { clear(); map.flyTo([25, 45], 5); setTooltip("Sustainability: الأرض أمانة للأجيال القادمة."); },
+      s28: () => { clear(); map.flyTo([28, 35], 11); setTooltip("Web Apps: تطبيقات خدمية في متناول اليد."); },
+      s29: () => { clear(); map.setZoom(12); setTooltip("Integration: ربط GIS بكافة أنظمة الدولة."); },
+      s30: () => { clear(); map.flyTo([24.7, 46.7], 13); setTooltip("Training: بناء الكوادر هو استثمارنا الحقيقي."); },
+      s31: () => { clear(); map.setZoom(5); setTooltip("ROI: الذكاء المكاني يوفر الملايين."); },
+      s32: () => { clear(); map.flyTo([24.76, 46.67], 15); setTooltip("3D Modeling: التوأم الرقمي لمستقبل المدن."); },
+      s33: () => { clear(); map.flyTo([28, 35], 8); setTooltip("Remote Sensing: رؤية التغير من الفضاء."); },
+      s34: () => { clear(); L.polygon([[24.7, 46.7], [24.75, 46.75]], { color: 'orange' }).addTo(analysisLayer); setTooltip("تنمية البشر: توجيه المشاريع للمناطق المحتاجة."); },
+      s35: () => { clear(); L.marker([24.7, 46.7]).addTo(analysisLayer); setTooltip("إدارة الأملاك: حماية الحقوق وتسهيل الاستثمار."); },
+      s36: () => { clear(); L.polyline([[21, 39], [22, 40]], { color: 'blue' }).addTo(analysisLayer); setTooltip("النقل العام: مدن تتحرك بذكاء وانسيابية."); },
+      s37: () => { clear(); map.flyTo([30, 40], 6); setTooltip("Disaster Response: سرعة الوصول في اللحظات الحرجة."); },
+      s38: () => { clear(); map.setZoom(14); setTooltip("Citizen Science: المواطن شريك في بناء المدينة."); },
+      s39: () => { clear(); map.flyTo([0, 0], 1); setTooltip("Big Data: تحليل الملايين لفهم نبض المكان."); },
+      s40: () => { clear(); map.flyTo([24.7, 46.7], 8); setTooltip("Unified Platform: خريطة واحدة لوطن واحد."); },
+      s41: () => { clear(); map.setZoom(13); setTooltip("GeoAI: التوقع الذكي لمستقبل العمران."); },
+      s42: () => { clear(); map.flyTo([24, 46], 5); setTooltip("Cloud GIS: العمل بحرية من أي مكان."); },
+      s43: () => { clear(); map.flyTo([0, 0], 1); setTooltip("Standards: التحدث بلغة تقنية عالمية."); },
+      s44: () => { clear(); map.flyTo([24.7, 46.7], 10); setTooltip("Cyber Security: درع البيانات الجغرافية."); },
+      s45: () => { clear(); map.flyTo([34, 40], 6); setTooltip("History: فهم الماضي لبناء مستقبل أفضل."); },
+      s46: () => { clear(); map.flyTo([24.7, 46.7], 15); setTooltip("Innovation: الواقع المعزز في قلب الميدان."); },
+      s47: () => { clear(); map.flyTo([24.7136, 46.6753], 6); setTooltip("تهانينا! أنت الآن مهندس مشاريع GIS."); },
+      s48: () => { clear(); map.setZoom(10); setTooltip("الرحلة مستمرة: التطبيق العملي بانتظارك."); },
+      s49: () => { clear(); map.flyTo([24.7136, 46.6753], 6); setTooltip("مبروك إنجاز اليوم السادس."); },
+      s50: () => { clear(); map.flyTo([34.8021, 38.9968], 7); setTooltip("نراكم في اليوم السابع: مشروع التخرج العملي."); }
+    };
+
+    const steps = document.querySelectorAll(".step");
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          const num = parseInt(id.replace('s', ''));
+          progressBar.style.width = (num / 50 * 100) + "%";
+          if (actions[id]) actions[id]();
+          steps.forEach(s => s.classList.remove('active'));
+          entry.target.classList.add('active');
+          document.querySelectorAll('.step-icon').forEach(icon => {
+            const iconNum = parseInt(icon.id.replace('icon-s', ''));
+            icon.classList.toggle('active', iconNum === num);
+            icon.classList.toggle('done', iconNum < num);
+          });
+          document.getElementById('prev-btn').disabled = (num === 1);
+          document.getElementById('next-btn').disabled = (num === 50);
+        }
+      });
+    }, { threshold: 0.6 });
+
+    steps.forEach(s => observer.observe(s));
+
+    document.getElementById('next-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.nextElementSibling?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('prev-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.previousElementSibling?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('restart-btn').onclick = () => steps[0].scrollIntoView({ behavior: 'smooth' });
+  </script>
+</body>
+
+</html>

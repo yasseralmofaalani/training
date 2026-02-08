@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اليوم الرابع: لغة الخرائط - دورة GIS المستوى 0</title>
+
+      <link rel="stylesheet" href="css/leaflet.css" />
+
+   <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link href="css/font.css"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --glass-bg: rgba(15, 23, 42, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --primary-accent: #3b82f6;
+            --text-main: #1e293b;
+        }
+
+        body {
+            font-family: 'Tajawal', sans-serif;
+            background: #ffffff;
+            color: var(--text-main);
+            margin: 0;
+            overflow-x: hidden;
+        }
+
+        #map-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        #scrolly {
+            position: relative;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .step {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 0 5%;
+            margin-bottom: 50vh;
+        }
+
+        .narrative-panel {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            width: 450px;
+            max-width: 85%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+            pointer-events: auto;
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .step.active .narrative-panel {
+            transform: scale(1.02);
+            border-color: var(--primary-accent);
+        }
+
+        .step.fullscreen {
+            justify-content: center;
+            padding: 0;
+        }
+
+        .content-box {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            padding: 60px;
+            text-align: center;
+            max-width: 800px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+            pointer-events: auto;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #0f172a;
+            margin-top: 0;
+        }
+
+        p {
+            font-size: 1.15rem;
+            line-height: 1.8;
+            color: #334155;
+        }
+
+        #progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            background: rgba(0, 0, 0, 0.05);
+            z-index: 1000;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            transition: width 0.3s;
+        }
+
+        #map-tooltip {
+            position: fixed;
+            z-index: 50;
+            top: 30px;
+            right: 30px;
+            background: #b8c4eb;
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            padding: 15px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            font-size: 0.95rem;
+            max-width: 300px;
+            font-weight: 700;
+            color: #1e293b;
+            border-right: 5px solid #3b82f6;
+        }
+
+        #step-icons {
+            position: fixed;
+            left: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 100;
+        }
+
+        .step-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(4px);
+            border: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #64748b;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .step-icon:hover,
+        .step-icon.active {
+            background: #3b82f6;
+            color: white;
+            transform: scale(1.2);
+        }
+
+        .step-icon.done {
+            background: #10b981;
+            color: white;
+        }
+
+        .story-nav {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 1000;
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            background: #3280ff;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #3b82f6;
+            transform: translateY(-3px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 900px) {
+            .narrative-panel {
+                width: 90%;
+                margin: 0 auto;
+            }
+
+            .step {
+                justify-content: center;
+                padding: 0 20px;
+            }
+
+            #step-icons {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+    <div id="map-tooltip">مرحباً بك في اليوم الرابع 👋</div>
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+    <div id="step-icons"></div>
+
+    <main id="scrolly">
+        <!-- Slides 1 - 50 -->
+        <section id="s1" class="step fullscreen" data-step="s1">
+            <div class="content-box">
+                <h1>اليوم الرابع: لغة الخرائط 🎨</h1>
+                <p>الخريطة ليست مجرد صورة، بل هي وسيلة تواصل علمية تُقنع وتُحلل وتكشف الحقيقة المكانية.</p>
+                <div style="margin-top: 40px; color: #3b82f6; font-weight: 800;">ابدأ بالتمرير لتتعلم فن قراءة
+                    الخرائط...</div>
+            </div>
+        </section>
+
+        <section id="s2" class="step" data-step="s2">
+            <div class="narrative-panel">
+                <h2>ما هي القراءة الخريطية؟</h2>
+                <p>هي القدرة على فهم الرموز والألوان والمقاييس والاتجاهات لاستخلاص المعلومة بسرعة ودقة.</p>
+            </div>
+        </section>
+        <section id="s3" class="step" data-step="s3">
+            <div class="narrative-panel">
+                <h2>الهدف من الخريطة</h2>
+                <p>قبل أي تصميم، اسأل نفسك: ما هو القرار الذي ستدعمه هذه الخريطة؟ (تخطيط، طوارئ، تنمية؟).</p>
+            </div>
+        </section>
+        <section id="s4" class="step" data-step="s4">
+            <div class="narrative-panel">
+                <h2>مكونات الخريطة الاحترافية</h2>
+                <p>العنوان، المفتاح، المقياس، سهم الشمال، ومصدر البيانات ضرورية لضمان مصداقية الخريطة.</p>
+            </div>
+        </section>
+        <section id="s5" class="step" data-step="s5">
+            <div class="narrative-panel">
+                <h2>العنوان الذكي</h2>
+                <p>يجب أن يجيب العنوان على: ماذا؟ أين؟ ومتى؟ (توزع المراكز الصحية في حمص - 2024).</p>
+            </div>
+        </section>
+        <section id="s6" class="step" data-step="s6">
+            <div class="narrative-panel">
+                <h2>المفتاح (Legend)</h2>
+                <p>هو "قاموس" الخريطة الذي يفك رموز الألوان والأشكال لتصبح البيانات مفهومة للجميع.</p>
+            </div>
+        </section>
+        <section id="s7" class="step" data-step="s7">
+            <div class="narrative-panel">
+                <h2>المقياس (Scale)</h2>
+                <p>العلاقة الرياضية بين ما نراه على الورق والمسافة الحقيقية على كوكب الأرض.</p>
+            </div>
+        </section>
+        <section id="s8" class="step" data-step="s8">
+            <div class="narrative-panel">
+                <h2>المقياس الكبير والصغير</h2>
+                <p>المقياس الكبير يعني تفاصيل أكثر (حي)، والصغير يعني مساحة أكبر (دولة).</p>
+            </div>
+        </section>
+        <section id="s9" class="step" data-step="s9">
+            <div class="narrative-panel">
+                <h2>الشمال الحقيقي والمغناطيسي</h2>
+                <p>في العمليات الدقيقة، يجب التمييز بين الشمال الجغرافي واتجاه إبرة البوصلة المغناطيسية.</p>
+            </div>
+        </section>
+        <section id="s10" class="step" data-step="s10">
+            <div class="narrative-panel">
+                <h2>المصدر والبيانات الوصفية</h2>
+                <p>توثيق مصدر البيانات يعطي الخريطة ثقلاً قانونياً وعلمياً ويحمي صانع القرار.</p>
+            </div>
+        </section>
+
+        <section id="s11" class="step" data-step="s11">
+            <div class="narrative-panel">
+                <h2>سيكولوجية الألوان</h2>
+                <p>الألوان تحمل دلالات: الأحمر للخطر، الأخضر للبيئة، الأزرق للمياه، والرمادي للبناء.</p>
+            </div>
+        </section>
+        <section id="s12" class="step" data-step="s12">
+            <div class="narrative-panel">
+                <h2>التباين والوضوح</h2>
+                <p>بدون تباين قوي بين المعالم والخلفية، ستضيع المعلومة ولن يتمكن القارئ من فهم الأنماط.</p>
+            </div>
+        </section>
+        <section id="s13" class="step" data-step="s13">
+            <div class="narrative-panel">
+                <h2>التسلسل البصري</h2>
+                <p>تصميم الخريطة يجب أن يقود "عين" القارئ إلى المعلومة الأهم أولاً ثم التفاصيل.</p>
+            </div>
+        </section>
+        <section id="s14" class="step" data-step="s14">
+            <div class="narrative-panel">
+                <h2>التوازن الفني</h2>
+                <p>توزيع عناصر الخريطة (العنوان، المفتاح...) بشكل متوازن يحقق الراحة البصرية والوضوح.</p>
+            </div>
+        </section>
+        <section id="s15" class="step" data-step="s15">
+            <div class="narrative-panel">
+                <h2>الترميز النقطي</h2>
+                <p>استخدام الرموز لتمثيل المواقع (مستشفيات، آبار، نقاط تفتيش) بشكل بديهي.</p>
+            </div>
+        </section>
+        <section id="s16" class="step" data-step="s16">
+            <div class="narrative-panel">
+                <h2>الترميز الخطي</h2>
+                <p>تمثيل المسارات (طرق، حدود، شبكات مياه) بسماكات وألوان تعبر عن الأهمية.</p>
+            </div>
+        </section>
+        <section id="s17" class="step" data-step="s17">
+            <div class="narrative-panel">
+                <h2>الترميز المساحي</h2>
+                <p>تعبئة المناطق (أحياء، غابات، بحيرات) بألوان أو أنماط (Hatching) لتمييز استخدامات الأراضي.</p>
+            </div>
+        </section>
+        <section id="s18" class="step" data-step="s18">
+            <div class="narrative-panel">
+                <h2>قواعد التسمية (Labels)</h2>
+                <p>النصوص يجب أن تكون واضحة، سهلة القراءة، ولا تغطي أبداً المعالم الجغرافية المهمة.</p>
+            </div>
+        </section>
+        <section id="s19" class="step" data-step="s19">
+            <div class="narrative-panel">
+                <h2>هالة النص (Halo)</h2>
+                <p>وضع إطار خفيف حول النص لضمان وضوحه فوق أي خلفية ملونة أو صور أقمار صناعية.</p>
+            </div>
+        </section>
+        <section id="s20" class="step" data-step="s20">
+            <div class="narrative-panel">
+                <h2>التعميم (Generalization)</h2>
+                <p>تبسيط المعالم عند التصغير لمنع ازدحام الخريطة (حذف الطرق الصغيرة مثلاً).</p>
+            </div>
+        </section>
+
+        <section id="s21" class="step" data-step="s21">
+            <div class="narrative-panel">
+                <h2>الخرائط الموضوعية</h2>
+                <p>خرائط تركز على موضوع محدد مثل توزيع الأمراض أو الكثافة السكانية بدلاً من الموقع فقط.</p>
+            </div>
+        </section>
+        <section id="s22" class="step" data-step="s22">
+            <div class="narrative-panel">
+                <h2>خرائط الكوربلث (Choropleth)</h2>
+                <p>استخدام تدرج الألوان لتمثيل كثافة البيانات داخل حدود إدارية (أكثر أنواع الخرائط انتشاراً).</p>
+            </div>
+        </section>
+        <section id="s23" class="step" data-step="s23">
+            <div class="narrative-panel">
+                <h2>الرموز النسبية</h2>
+                <p>تكبير حجم الرمز بناءً على القيمة (دائرة كبيرة لمدينة مليونية ودائرة صغيرة لبلدة).</p>
+            </div>
+        </section>
+        <section id="s24" class="step" data-step="s24">
+            <div class="narrative-panel">
+                <h2>خرائط الكثافة النقطية</h2>
+                <p>تمثيل البيانات بنقاط مبعثرة، كل نقطة تمثل كمية ثابتة (مثلاً نقطة لكل 100 مزارع).</p>
+            </div>
+        </section>
+        <section id="s25" class="step" data-step="s25">
+            <div class="narrative-panel">
+                <h2>خرائط الحرارة (Heatmap)</h2>
+                <p>تمثيل التركزات والازدحامات بالألوان الدافئة والباردة (رائعة لتحليل الجرائم أو الحوادث).</p>
+            </div>
+        </section>
+        <section id="s26" class="step" data-step="s26">
+            <div class="narrative-panel">
+                <h2>خرائط التدفق (Flow)</h2>
+                <p>تمثيل حركة البضائع أو هجرة السكان أو مسارات الرياح بخطوط ذات اتجاه وسماكات متغيرة.</p>
+            </div>
+        </section>
+        <section id="s27" class="step" data-step="s27">
+            <div class="narrative-panel">
+                <h2>خرائط التساوي (Isarithmic)</h2>
+                <p>توصيل النقاط المتساوية في القيمة، مثل خرائط الطقس (الحرارة) أو الارتفاعات (الكنتور).</p>
+            </div>
+        </section>
+        <section id="s28" class="step" data-step="s28">
+            <div class="narrative-panel">
+                <h2>طرق التصنيف (Quantile)</h2>
+                <p>تقسيم البيانات إلى مجموعات متساوية في العدد (مفيدة لمقارنة المناطق ببعضها).</p>
+            </div>
+        </section>
+        <section id="s29" class="step" data-step="s29">
+            <div class="narrative-panel">
+                <h2>طرق التصنيف (Natural Breaks)</h2>
+                <p>طريقة ذكية تكتشف "القفزات" في البيانات لتقسيمها بشكل منطقي وطبيعي.</p>
+            </div>
+        </section>
+        <section id="s30" class="step" data-step="s30">
+            <div class="narrative-panel">
+                <h2>أخطاء التظليل</h2>
+                <p>تجنب استخدام تدرجات ألوان كثيرة جداً تربك العين وتجعل الخريطة صعبة التفسير.</p>
+            </div>
+        </section>
+
+        <section id="s31" class="step" data-step="s31">
+            <div class="narrative-panel">
+                <h2>نظم الإحداثيات (Projections)</h2>
+                <p>تحويل كوكبنا الكروي إلى خريطة مستوية؛ واختيارنظام الإسقاط الصحيح يمنع تشوه المساحات.</p>
+            </div>
+        </section>
+        <section id="s32" class="step" data-step="s32">
+            <div class="narrative-panel">
+                <h2>إسقاط ميركاتور</h2>
+                <p>الأشهر في الملاحة البحرية، لكنه يشوه أحجام القارات القريبة من القطبين بشكل كبير.</p>
+            </div>
+        </section>
+        <section id="s33" class="step" data-step="s33">
+            <div class="narrative-panel">
+                <h2>نظام UTM</h2>
+                <p>النظام العالمي العسكري والأكثر دقة للعمل الميداني والقياسات الهندسية المحلية.</p>
+            </div>
+        </section>
+        <section id="s34" class="step" data-step="s34">
+            <div class="narrative-panel">
+                <h2>قياس المسافات</h2>
+                <p>استخدام أدوات المسطرة الرقمية لحساب أطوال الطرق أو مدى وصول الصواريخ أو الطائرات.</p>
+            </div>
+        </section>
+        <section id="s35" class="step" data-step="s35">
+            <div class="narrative-panel">
+                <h2>قياس المساحات</h2>
+                <p>ضروري لتخمين حجم الأضرار أو احتساب مساحات الغابات أو الأراضي المحروقة.</p>
+            </div>
+        </section>
+        <section id="s36" class="step" data-step="s36">
+            <div class="narrative-panel">
+                <h2>خلفيات الخرائط (Basemaps)</h2>
+                <p>اختيار الخلفية المناسبة (قمر صناعي vs خريطة طرق) يعتمد على نوع المعلومة المطلوبة.</p>
+            </div>
+        </section>
+        <section id="s37" class="step" data-step="s37">
+            <div class="narrative-panel">
+                <h2>دمج البيانات (Overlay)</h2>
+                <p>وضع طبقة فوق أخرى لاكتشاف العلاقات المكانية (تداخل مناطق الفيضان مع السكن).</p>
+            </div>
+        </section>
+        <section id="s38" class="step" data-step="s38">
+            <div class="narrative-panel">
+                <h2>النوافذ المنبثقة (Pop-ups)</h2>
+                <p>في الخرائط الرقمية، الضغط على العنصر يعطيك تفاصيله كاملة: الاسم، النوع، والتاريخ.</p>
+            </div>
+        </section>
+        <section id="s39" class="step" data-step="s39">
+            <div class="narrative-panel">
+                <h2>التفاعل الخريطي</h2>
+                <p>القدرة على تكبير وتصغير (Zoom) الخريطة لرؤية مستويات مختلفة من البيانات.</p>
+            </div>
+        </section>
+        <section id="s40" class="step" data-step="s40">
+            <div class="narrative-panel">
+                <h2>أدوات البحث المكاني</h2>
+                <p>البحث عن موقع محدد عبر الإحداثيات أو الاسم داخل الخريطة التفاعلية.</p>
+            </div>
+        </section>
+
+        <section id="s41" class="step" data-step="s41">
+            <div class="narrative-panel">
+                <h2>التصميم للأجهزة المحمولة</h2>
+                <p>الخريطة يجب أن تكون واضحة وقابلة للاستخدام حتى على شاشة الموبايل الصغيرة في الميدان.</p>
+            </div>
+        </section>
+        <section id="s42" class="step" data-step="s42">
+            <div class="narrative-panel">
+                <h2>الخرائط ثنائية المتغير</h2>
+                <p>إظهار ظاهرتين معاً (مثلاً الفقر والتعليم) في خريطة واحدة باستخدام تدرج لوني مركب.</p>
+            </div>
+        </section>
+        <section id="s43" class="step" data-step="s43">
+            <div class="narrative-panel">
+                <h2>الوقت في الخريطة</h2>
+                <p>تمثيل التغير عبر الزمن باستخدام شريط التمرير الزمني (Time Slider) لمراقبة تمدد المدن.</p>
+            </div>
+        </section>
+        <section id="s44" class="step" data-step="s44">
+            <div class="narrative-panel">
+                <h2>أدوات عرض 3D</h2>
+                <p>فهم لغة الارتفاعات والمباني وتغطية كاميرات المراقبة بشكل واقعي.</p>
+            </div>
+        </section>
+        <section id="s45" class="step" data-step="s45">
+            <div class="narrative-panel">
+                <h2>لوحات المعلومات (Dashboards)</h2>
+                <p>دمج الخرائط مع رسوم بيانية حية لتعطي صورة لحظية وشاملة لصناع القرار.</p>
+            </div>
+        </section>
+        <section id="s46" class="step" data-step="s46">
+            <div class="narrative-panel">
+                <h2>تحليل الظلال (Viewshed)</h2>
+                <p>تحديد ما هي المناطق التي يمكن رؤيتها من نقطة معينة (مهم لمواقع أبراج المراقبة).</p>
+            </div>
+        </section>
+        <section id="s47" class="step" data-step="s47">
+            <div class="narrative-panel">
+                <h2>خرائط القصة (StoryMaps)</h2>
+                <p>تحويل التحليل الجغرافي المعقد إلى رحلة بصرية شيقة يفهمها حتى غير المختصين.</p>
+            </div>
+        </section>
+        <section id="s48" class="step" data-step="s48">
+            <div class="narrative-panel">
+                <h2>الأخلاقيات في الكارتوغرافيا</h2>
+                <p>الخريطة أمانة؛ التلاعب بالبيانات أو الألوان لتضليل الناس هو خطأ مهني وأخلاقي فادح.</p>
+            </div>
+        </section>
+        <section id="s49" class="step fullscreen" data-step="s49">
+            <div class="content-box">
+                <h1 style="color: #10b981;"> أتممت اليوم الرابع 🎉</h1>
+                <p>لقد أتقنت لغة الخرائط وأصبحت قادراً على تصميم خرائط احترافية ومؤثرة.</p>
+                <div style="margin-top: 30px;"><a href="day5.html" class="nav-btn" style="text-decoration:none;">اليوم
+                        الخامس ➔</a></div>
+            </div>
+        </section>
+        <section id="s50" class="step fullscreen" data-step="s50">
+            <div class="content-box">
+                <h2>نراكم غداً...</h2>
+                <p>غداً سننتقل للجانب العملي المتقدم: تطبيقات GIS في الأمن والدفاع.</p>
+            </div>
+        </section>
+    </main>
+
+    <div class="story-nav">
+        <button id="prev-btn" class="nav-btn" disabled>السابق</button>
+        <button id="next-btn" class="nav-btn">التالي</button>
+        <button id="restart-btn" class="nav-btn">إعادة</button>
+    </div>
+
+    <script type="module">
+        import L from 'https://esm.sh/leaflet';
+
+        const map = L.map('map', {
+            zoomControl: false, scrollWheelZoom: false, dragging: false,
+            attributionControl: false, doubleClickZoom: false
+        }).setView([34.8021, 38.9968], 7);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', { zIndex: 1000 }).addTo(map);
+        const analysisLayer = L.layerGroup().addTo(map);
+
+        const tooltipBox = document.getElementById("map-tooltip");
+        const progressBar = document.getElementById("progress-bar");
+        const iconsContainer = document.getElementById("step-icons");
+
+        function setTooltip(text) { tooltipBox.innerHTML = text; }
+        function clear() { analysisLayer.clearLayers(); }
+
+        for (let i = 1; i <= 50; i++) {
+            const icon = document.createElement('div');
+            icon.className = 'step-icon'; icon.innerText = i; icon.id = `icon-s${i}`;
+            icon.onclick = () => document.getElementById(`s${i}`)?.scrollIntoView({ behavior: 'smooth' });
+            iconsContainer.appendChild(icon);
+        }
+
+        const actions = {
+            s1: () => { clear(); map.flyTo([34.8021, 38.9968], 7); setTooltip("اليوم الرابع: لغة الخرائط وفن التصميم."); },
+            s2: () => { clear(); map.flyTo([51.5074, -0.1278], 10); setTooltip("فهم لغة الخرائط: استخلاص الأنماط من الضجيج."); },
+            s3: () => { clear(); map.flyTo([48.8566, 2.3522], 11); setTooltip("دعم القرار: الخريطة كأداة إقناع قوية."); },
+            s4: () => { clear(); map.flyTo([0, 0], 2); setTooltip("المكونات: عنوان، مفتاح، مقياس، وسهم شمال."); },
+            s5: () => { clear(); map.flyTo([33.51, 36.27], 10); setTooltip("العنوان الذكي: يخبر القصة باختصار."); },
+            s6: () => { clear(); map.setZoom(12); setTooltip("Legend: المترجم القانوني لرموزك وألوانك."); },
+            s7: () => { clear(); map.setZoom(15); setTooltip("المقياس: لغة المسافات والواقع."); },
+            s8: () => { clear(); map.setZoom(5); setTooltip("الصغير والكبير: التوازن بين المساحة والتفاصيل."); },
+            s9: () => { clear(); L.polyline([[0, 0], [0, 1]], { color: 'black' }).addTo(analysisLayer); setTooltip("الشمال: مرجعيتك في عالم واسع."); },
+            s10: () => { clear(); map.flyTo([24.7, 46.7], 8); setTooltip("Metadata: هوية الخريطة ومصداقيتها."); },
+            s11: () => { clear(); L.polygon([[34, 39], [34.2, 39], [34.2, 39.2], [34, 39.2]], { color: 'red' }).addTo(analysisLayer); setTooltip("سيكولوجية الألوان: الأحمر للخطر والأخضر للحياة."); },
+            s12: () => { clear(); map.setZoom(14); setTooltip("التباين: لضمان وصول الرسالة دون غموض."); },
+            s13: () => { clear(); map.flyTo([25.2, 55.3], 13); setTooltip("التسلسل البصري: قيادة عين القارئ للمعلومة."); },
+            s14: () => { clear(); map.setZoom(11); setTooltip("التوازن الفني: توزيع العناصر باحترافية."); },
+            s15: () => { clear(); L.circleMarker([33.51, 36.27], { radius: 10, color: '#3b82f6' }).addTo(analysisLayer); map.flyTo([33.51, 36.27], 14); setTooltip("الترميز النقطي: تثبيت مواقع الخدمات."); },
+            s16: () => { clear(); L.polyline([[33.5, 36.2], [33.55, 36.3]], { color: 'blue', weight: 4 }).addTo(analysisLayer); setTooltip("الترميز الخطي: رسم مسارات القوة والإمداد."); },
+            s17: () => { clear(); L.polygon([[33.5, 36.2], [33.52, 36.2], [33.52, 36.22], [33.5, 36.22]], { color: 'green' }).addTo(analysisLayer); setTooltip("الترميز المساحي: تمييز الغابات والمناطق السكنية."); },
+            s18: () => { clear(); map.setZoom(11); setTooltip("Labels: وضع الأسماء هو فن بحد ذاته."); },
+            s19: () => { clear(); L.marker([33.51, 36.27]).addTo(analysisLayer); setTooltip("Text Halo: ضمان قراءة النص المتداخل."); },
+            s20: () => { clear(); map.setZoom(5); setTooltip("التعميم: تبسيط الواقع عند التصغير."); },
+            s21: () => { clear(); map.flyTo([25, 45], 5); setTooltip("الخرائط الموضوعية: التركيز على قصة محددة."); },
+            s22: () => { clear(); L.polygon([[24, 46], [25, 46], [25, 47], [24, 47]], { color: '#8b5cf6' }).addTo(analysisLayer); setTooltip("Choropleth: تدرج الألوان حسب كثافة البيانات."); },
+            s23: () => { clear(); L.circleMarker([24.7, 46.7], { radius: 30, color: 'blue' }).addTo(analysisLayer); setTooltip("الرموز النسبية: حجم الرمز يحكي قيمة المعلم."); },
+            s24: () => { clear(); for (let i = 0; i < 30; i++) L.circleMarker([24.7 + (Math.random() - 0.5) * 0.1, 46.7 + (Math.random() - 0.5) * 0.1], { radius: 2 }).addTo(analysisLayer); setTooltip("Dot Density: تمييز التوزع السكاني والزراعي."); },
+            s25: () => { clear(); for (let i = 0; i < 20; i++) { L.circleMarker([34.73 + (Math.random() - 0.5) * 0.1, 36.71 + (Math.random() - 0.5) * 0.1], { radius: 5, color: '#ef4444' }).addTo(analysisLayer); } map.flyTo([34.73, 36.71], 12); setTooltip("Heatmap: تحليل التركز المكاني الساخن."); },
+            s26: () => { clear(); L.polyline([[24.7, 46.7], [25.2, 55.3]], { color: 'orange', weight: 5 }).addTo(analysisLayer); setTooltip("Flow Maps: تمييز الحركة والملاحة والهجرة."); },
+            s27: () => { clear(); L.polyline([[33, 36], [34, 37], [35, 36]], { color: 'gray' }).addTo(analysisLayer); setTooltip("الكنتور: توصيل القيم المتساوية في الارتفاع."); },
+            s28: () => { clear(); map.setZoom(7); setTooltip("Quantile Classification: تقسيم متساوٍ للبيانات."); },
+            s29: () => { clear(); map.setZoom(8); setTooltip("Natural Breaks: اكتشاف القفزات المنطقية."); },
+            s30: () => { clear(); map.flyTo([0, 0], 1); setTooltip("أخطاء التظليل: تجنب الإرباك البصري."); },
+            s31: () => { clear(); map.flyTo([0, 0], 2); setTooltip("Projections: تحويل الكرة الأرضية لمستوى."); },
+            s32: () => { clear(); map.flyTo([70, 40], 3); setTooltip("Mercator: دقة الاتجاهات الساحلية."); },
+            s33: () => { clear(); map.flyTo([24, 46], 7); setTooltip("UTM: النظام العالمي العسكري الأكثر دقة."); },
+            s34: () => { clear(); L.polyline([[24.7, 46.7], [24.8, 46.8]], { color: 'blue' }).addTo(analysisLayer); setTooltip("قياس المسافات: حساب أطوال الطرق والإمداد."); },
+            s35: () => { clear(); L.polygon([[24.7, 46.7], [24.8, 46.7], [24.8, 46.8], [24.7, 46.8]], { color: 'red' }).addTo(analysisLayer); setTooltip("قياس المساحات: تقدير حجم الغابات والأضرار."); },
+            s36: () => { clear(); map.flyTo([34, 39], 10); setTooltip("Basemaps: اختيار الخلفية حسب المهمة."); },
+            s37: () => { clear(); L.circle([34, 39], { radius: 5000, color: 'blue' }).addTo(analysisLayer); setTooltip("Overlay: اكتشاف العلاقات المعقدة بين الطبقات."); },
+            s38: () => { clear(); L.marker([34.1, 39.1]).addTo(analysisLayer); setTooltip("Pop-ups: الوصول للمعلومات بضغطة زر."); },
+            s39: () => { clear(); map.setZoom(14); setTooltip("Interactive Zoom: استكشاف مستويات التفاصيل."); },
+            s40: () => { clear(); map.flyTo([24.71, 46.67], 15); setTooltip("Spatial Search: الوصول السريع للموقع المطلوب."); },
+            s41: () => { clear(); map.flyTo([24, 46], 12); setTooltip("الخريطة المحمولة: العمل الميداني في كفك."); },
+            s42: () => { clear(); L.circleMarker([24.7, 46.7], { color: 'cyan', radius: 15 }).addTo(analysisLayer); setTooltip("التمثيل ثنائي المتغير: ربط ظاهرتين معاً."); },
+            s43: () => { clear(); map.flyTo([34, 40], 5); setTooltip("Time Slider: مراقبة التغير عبر الزمن."); },
+            s44: () => { clear(); map.flyTo([35.2, 37.8], 9); setTooltip("3D View: البعد الثالث في فهم التضاريس."); },
+            s45: () => { clear(); map.flyTo([24.7, 46.7], 10); setTooltip("Dashboard: الخريطة كجزء من نظام معلوماتي."); },
+            s46: () => { clear(); L.circle([24.7, 46.7], { radius: 2000, color: 'white' }).addTo(analysisLayer); setTooltip("Viewshed: تحليل ما تراه العين من القمة."); },
+            s47: () => { clear(); map.flyTo([0, 0], 3); setTooltip("StoryMaps: سرد القصص الجغرافية المؤثرة."); },
+            s48: () => { clear(); map.flyTo([34, 40], 7); setTooltip("الأخلاقيات: الأمانة والدقة في التصميم."); },
+            s49: () => { clear(); map.flyTo([24.7136, 46.6753], 6); setTooltip("برافو! لقد أتقنت لغة الخرائط العالمية."); },
+            s50: () => { clear(); map.flyTo([34.8021, 38.9968], 7); setTooltip("نراكم غداً في تطبيقات الأمن والدفاع."); }
+        };
+
+        const steps = document.querySelectorAll(".step");
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const id = entry.target.id;
+                    const num = parseInt(id.replace('s', ''));
+                    progressBar.style.width = (num / 50 * 100) + "%";
+                    if (actions[id]) actions[id]();
+                    steps.forEach(s => s.classList.remove('active'));
+                    entry.target.classList.add('active');
+                    document.querySelectorAll('.step-icon').forEach(icon => {
+                        const iconNum = parseInt(icon.id.replace('icon-s', ''));
+                        icon.classList.toggle('active', iconNum === num);
+                        icon.classList.toggle('done', iconNum < num);
+                    });
+                    document.getElementById('prev-btn').disabled = (num === 1);
+                    document.getElementById('next-btn').disabled = (num === 50);
+                }
+            });
+        }, { threshold: 0.6 });
+
+        steps.forEach(s => observer.observe(s));
+
+        document.getElementById('next-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.nextElementSibling?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('prev-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.previousElementSibling?.scrollIntoView({ behavior: 'smooth' });
+        document.getElementById('restart-btn').onclick = () => steps[0].scrollIntoView({ behavior: 'smooth' });
+    </script>
+</body>
+
+</html>

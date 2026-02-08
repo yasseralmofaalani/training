@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>اليوم الخامس: الأمن والدفاع - دورة GIS المستوى 0</title>
+
+   <link rel="stylesheet" href="css/leaflet.css" />
+
+   <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link href="css/font.css"
+        rel="stylesheet">
+
+  <style>
+    :root {
+      --glass-bg: rgba(15, 23, 42, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.2);
+      --primary-accent: #3b82f6;
+      --text-main: #1e293b;
+    }
+
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background: #ffffff;
+      color: var(--text-main);
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    #map-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+
+    #scrolly {
+      position: relative;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .step {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 0 5%;
+      margin-bottom: 50vh;
+    }
+
+    .narrative-panel {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(16px) saturate(180%);
+      -webkit-backdrop-filter: blur(16px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      border-radius: 24px;
+      padding: 40px;
+      width: 450px;
+      max-width: 85%;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
+      pointer-events: auto;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .step.active .narrative-panel {
+      transform: scale(1.02);
+      border-color: var(--primary-accent);
+    }
+
+    .step.fullscreen {
+      justify-content: center;
+      padding: 0;
+    }
+
+    .content-box {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 32px;
+      padding: 60px;
+      text-align: center;
+      max-width: 800px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.15);
+      pointer-events: auto;
+    }
+
+    h1,
+    h2,
+    h3 {
+      color: #0f172a;
+      margin-top: 0;
+    }
+
+    p {
+      font-size: 1.15rem;
+      line-height: 1.8;
+      color: #334155;
+    }
+
+    #progress-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: rgba(0, 0, 0, 0.05);
+      z-index: 1000;
+    }
+
+    #progress-bar {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      transition: width 0.3s;
+    }
+
+    #map-tooltip {
+      position: fixed;
+      z-index: 50;
+      top: 30px;
+      right: 30px;
+      background: #b8c4eb;
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      padding: 15px 20px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      font-size: 0.95rem;
+      max-width: 300px;
+      font-weight: 700;
+      color: #1e293b;
+      border-right: 5px solid #3b82f6;
+    }
+
+    #step-icons {
+      position: fixed;
+      left: 30px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .step-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: #64748b;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .step-icon:hover,
+    .step-icon.active {
+      background: #3b82f6;
+      color: white;
+      transform: scale(1.2);
+    }
+
+    .step-icon.done {
+      background: #10b981;
+      color: white;
+    }
+
+    .story-nav {
+      position: fixed;
+      bottom: 30px;
+      left: 30px;
+      z-index: 1000;
+      display: flex;
+      gap: 15px;
+    }
+
+    .nav-btn {
+      background: #3280ff;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: #3b82f6;
+      transform: translateY(-3px);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 900px) {
+      .narrative-panel {
+        width: 90%;
+        margin: 0 auto;
+      }
+
+      .step {
+        justify-content: center;
+        padding: 0 20px;
+      }
+
+      #step-icons {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+  <div id="map-tooltip">مرحباً بك في اليوم الخامس 👋</div>
+  <div id="map-container">
+    <div id="map"></div>
+  </div>
+  <div id="step-icons"></div>
+
+  <main id="scrolly">
+    <!-- Slides 1 - 50 -->
+    <section id="s1" class="step fullscreen" data-step="s1">
+      <div class="content-box">
+        <h1>اليوم الخامس: الأمن والدفاع الجغرافي 🎖️</h1>
+        <p>سنتعرف على كيفية تحويل الجغرافيا إلى قوة استراتيجية لحماية الحدود وإدارة المخاطر وبناء الوعي الإقليمي.</p>
+        
+      </div>
+    </section>
+
+    <section id="s2" class="step" data-step="s2">
+      <div class="narrative-panel">
+        <h2>الوعي بالموقف (Situational Awareness)</h2>
+        <p>القدرة على رؤية وفهم ما يحدث في المحيط المكاني لاتخاذ قرارات سريعة ودقيقة في الوقت المناسب.</p>
+      </div>
+    </section>
+    <section id="s3" class="step" data-step="s3">
+      <div class="narrative-panel">
+        <h2>دور GIS الاستراتيجي</h2>
+        <p>كل قرار دفاعي يبدأ بـ "أين؟". نظام المعلومات الجغرافي هو العقل المدبر لربط البيانات بالموقع.</p>
+      </div>
+    </section>
+    <section id="s4" class="step" data-step="s4">
+      <div class="narrative-panel">
+        <h2>تنوع التضاريس الإقليمي</h2>
+        <p>الشرق الأوسط يجمع الجبال، الصحارى، والسواحل، مما يتطلب تحليلاً مكانياً فائق الدقة لكل بيئة.</p>
+      </div>
+    </section>
+    <section id="s5" class="step" data-step="s5">
+      <div class="narrative-panel">
+        <h2>تحليل الانحدار (Slope)</h2>
+        <p>تحديد زوايا ميل الأرض لتحديد المسارات الممكنة للآليات الثقيلة ومناطق الإنزال المظلي.</p>
+      </div>
+    </section>
+    <section id="s6" class="step" data-step="s6">
+      <div class="narrative-panel">
+        <h2>تحليل الرؤية (Viewshed)</h2>
+        <p>تحديد ما يمكن رؤيته من نقطة مرتفعة، وهو جوهر تخطيط أبراج المراقبة ونقاط الدفاع.</p>
+      </div>
+    </section>
+    <section id="s7" class="step" data-step="s7">
+      <div class="narrative-panel">
+        <h2>مضيق هرمز الاستراتيجي</h2>
+        <p>تحليل الممرات البحرية وحماية خطوط الملاحة التي تشكل شريان الطاقة للعالم.</p>
+      </div>
+    </section>
+    <section id="s8" class="step" data-step="s8">
+      <div class="narrative-panel">
+        <h2>باب المندب والمخاطر</h2>
+        <p>استخدام GIS لمراقبة التهديدات البحرية وتأمين حركة التجارة في الممرات الدولية الضيقة.</p>
+      </div>
+    </section>
+    <section id="s9" class="step" data-step="s9">
+      <div class="narrative-panel">
+        <h2>أمن قناة السويس</h2>
+        <p>تطبيقات GIS في إدارة الطوارئ البحرية وسرعة الاستجابة للحوادث في القنوات الحيوية.</p>
+      </div>
+    </section>
+    <section id="s10" class="step" data-step="s10">
+      <div class="narrative-panel">
+        <h2>إدارة المنشآت العسكرية</h2>
+        <p>تخطيط وتأمين القواعد والمخازن ومراكز القيادة باستخدام خرائط الربط اللوجستي.</p>
+      </div>
+    </section>
+
+    <section id="s11" class="step" data-step="s11">
+      <div class="narrative-panel">
+        <h2>نطاقات الحماية (Buffer Zones)</h2>
+        <p>إنشاء أحزمة أمان حول المواقع الحساسة لمنع الاقتراب أو التعدي العشوائي.</p>
+      </div>
+    </section>
+    <section id="s12" class="step" data-step="s12">
+      <div class="narrative-panel">
+        <h2>تخطيط الإمداد والتموين</h2>
+        <p>تحسين طرق القوافل اللوجستية لضمان وصول الإمدادات بأسرع وقت وأقل مخاطرة.</p>
+      </div>
+    </section>
+    <section id="s13" class="step" data-step="s13">
+      <div class="narrative-panel">
+        <h2>المراقبة عبر الأقمار الصناعية</h2>
+        <p>استخدام الصور الفضائية لرصد التغيرات العمرانية والتحركات الميدانية بدقة على مدار الساعة.</p>
+      </div>
+    </section>
+    <section id="s14" class="step" data-step="s14">
+      <div class="narrative-panel">
+        <h2>تتبع الأصول في الوقت الفعلي</h2>
+        <p>ربط GPS بالخرائط لمراقبة حركة الدوريات والفرق الميدانية في غرف العمليات.</p>
+      </div>
+    </section>
+    <section id="s15" class="step" data-step="s15">
+      <div class="narrative-panel">
+        <h2>أمن الحدود (Border Security)</h2>
+        <p>تحويل الخط الحدودي إلى منظومة رقمية متكاملة من الحساسات والكاميرات وأبراج المراقبة.</p>
+      </div>
+    </section>
+    <section id="s16" class="step" data-step="s16">
+      <div class="narrative-panel">
+        <h2>كشف أنماط التهريب</h2>
+        <p>تحليل البيانات التاريخية لاكتشاف الثغرات الجغرافية التي تستخدمها شبكات التهريب.</p>
+      </div>
+    </section>
+    <section id="s17" class="step" data-step="s17">
+      <div class="narrative-panel">
+        <h2>حماية البنية التحتية الحيوية</h2>
+        <p>تأمين محطات الطاقة، السدود، وشبكات المياه باستخدام التحليل المكاني للمخاطر.</p>
+      </div>
+    </section>
+    <section id="s18" class="step" data-step="s18">
+      <div class="narrative-panel">
+        <h2>أمن خطوط الأنابيب</h2>
+        <p>مراقبة آلاف الكيلومترات من خطوط النفط والغاز عبر نظم الإنذار المبكر الجغرافي.</p>
+      </div>
+    </section>
+    <section id="s19" class="step" data-step="s19">
+      <div class="narrative-panel">
+        <h2>الأمن السيبراني المكاني</h2>
+        <p>تحديد المواقع الجغرافية لهجمات الشبكات وحماية مراكز البيانات الاستراتيجية.</p>
+      </div>
+    </section>
+    <section id="s20" class="step" data-step="s20">
+      <div class="narrative-panel">
+        <h2>إدارة الأزمات والكوارث</h2>
+        <p>استخدام GIS للتنسيق بين الجهات الأمنية والمدنية في حالات الطوارئ الكبرى.</p>
+      </div>
+    </section>
+
+    <section id="s21" class="step" data-step="s21">
+      <div class="narrative-panel">
+        <h2>الرادار وتوقعات التغطية</h2>
+        <p>محاكاة مدى تغطية الرادارات والاتصالات بناءً على التضاريس المحيطة.</p>
+      </div>
+    </section>
+    <section id="s22" class="step" data-step="s22">
+      <div class="narrative-panel">
+        <h2>تحليل حركة الحشود</h2>
+        <p>تأمين الفعاليات الكبرى والمطارات عبر نمذجة تدفق البشر ومنع التدافع.</p>
+      </div>
+    </section>
+    <section id="s23" class="step" data-step="s23">
+      <div class="narrative-panel">
+        <h2>تخطيط الإجلاء الطبي (MEDEVAC)</h2>
+        <p>تحديد أسرع المسارات الجوية والبرية لنقل المصابين إلى أقرب نقطة طبية مؤهلة.</p>
+      </div>
+    </section>
+    <section id="s24" class="step" data-step="s24">
+      <div class="narrative-panel">
+        <h2>مراقبة المياه الإقليمية</h2>
+        <p>تأمين السواحل والمرافئ ضد الاختراقات البحرية باستخدام أنظمة الرصد الراداري المدمج.</p>
+      </div>
+    </section>
+    <section id="s25" class="step" data-step="s25">
+      <div class="narrative-panel">
+        <h2>تحليل الجريمة المكاني</h2>
+        <p>وضع خرائط "ساخنة" (Heatmaps) لتوزيع الجرائم لتعزيز التواجد الأمني الاستباقي.</p>
+      </div>
+    </section>
+    <section id="s26" class="step" data-step="s26">
+      <div class="narrative-panel">
+        <h2>أمن المطارات والمدارج</h2>
+        <p>إدارة الحركة الأرضية وتأمين المحيط الجغرافي للمطارات ضد الطائرات المسيرة (Drones).</p>
+      </div>
+    </section>
+    <section id="s27" class="step" data-step="s27">
+      <div class="narrative-panel">
+        <h2>نظم دعم القرار (DSS)</h2>
+        <p>تحويل آلاف البيانات المكانية المعقدة إلى لوحة تحكم (Dashboard) بسيطة للقادة.</p>
+      </div>
+    </section>
+    <section id="s28" class="step" data-step="s28">
+      <div class="narrative-panel">
+        <h2>محاكاة العمليات (Simulation)</h2>
+        <p>إجراء تدريبات افتراضية على الخرائط الحقيقية لرفع جاهزية القوات دون تكاليف ميدانية.</p>
+      </div>
+    </section>
+    <section id="s29" class="step" data-step="s29">
+      <div class="narrative-panel">
+        <h2>تحليل تغطية الكاميرات</h2>
+        <p>توزيع كاميرات المراقبة في المدن لضمان عدم وجود "نقاط عمياء" في الشوارع الحيوية.</p>
+      </div>
+    </section>
+    <section id="s30" class="step" data-step="s30">
+      <div class="narrative-panel">
+        <h2>التخطيط العمراني الأمني</h2>
+        <p>تصميم الأحياء والمدن بطريقة تسهل الحركة الأمنية وتصعب عمليات التخفي.</p>
+      </div>
+    </section>
+
+    <section id="s31" class="step" data-step="s31">
+      <div class="narrative-panel">
+        <h2>مراقبة السدود والموارد المائية</h2>
+        <p>الأمن المائي هو أمن قومي؛ GIS يراقب مستويات التخزين وسلامة المنشآت المائية.</p>
+      </div>
+    </section>
+    <section id="s32" class="step" data-step="s32">
+      <div class="narrative-panel">
+        <h2>تحليل شبكات الطاقة</h2>
+        <p>حماية محطات التوليد وخطوط النقل ضد التخريب أو العوارض التقنية المكيفة مكانياً.</p>
+      </div>
+    </section>
+    <section id="s33" class="step" data-step="s33">
+      <div class="narrative-panel">
+        <h2>الاستشعار عن بعد وتحديد الأهداف</h2>
+        <p>استخدام التقنيات الحرارية والليلية المدمجة مع GIS لرصد الأهداف بدقة متناهية.</p>
+      </div>
+    </section>
+    <section id="s34" class="step" data-step="s34">
+      <div class="narrative-panel">
+        <h2>إدارة المخازن الدفاعية</h2>
+        <p>توزيع مستودعات الذخيرة والوقود بمواقع استراتيجية تضمن سرعة الوصول والأمان.</p>
+      </div>
+    </section>
+    <section id="s35" class="step" data-step="s35">
+      <div class="narrative-panel">
+        <h2>أمن الاتصالات الراديوية</h2>
+        <p>تخطيط مواقع الأبراج لضمان تغطية كاملة للمناطق النائية والحدودية الوعرة.</p>
+      </div>
+    </section>
+    <section id="s36" class="step" data-step="s36">
+      <div class="narrative-panel">
+        <h2>التعامل مع الطائرات المسيرة</h2>
+        <p>استخدام خرائط الارتفاعات والمباني لتحديد مسارات ومناطق هبوط الـ Drones الأمنية.</p>
+      </div>
+    </section>
+    <section id="s37" class="step" data-step="s37">
+      <div class="narrative-panel">
+        <h2>تحليل الأثر البيئي للعمليات</h2>
+        <p>ضمان عدم تضرر الموارد الطبيعية والمياه الجوفية أثناء الأنشطة الدفاعية الكبرى.</p>
+      </div>
+    </section>
+    <section id="s38" class="step" data-step="s38">
+      <div class="narrative-panel">
+        <h2>الخرائط التاريخية والدفاع</h2>
+        <p>فهم النزاعات السابقة عبر الخرائط القديمة لتحليل جذور المشكلات الأمنية وتطورها.</p>
+      </div>
+    </section>
+    <section id="s39" class="step" data-step="s39">
+      <div class="narrative-panel">
+        <h2>تكامل البيانات الاستخباراتية</h2>
+        <p>دمج المعلومات من مصادر مختلفة (بشرية، تقنية) وعرضها فوق الخريطة الموحدة.</p>
+      </div>
+    </section>
+    <section id="s40" class="step" data-step="s40">
+      <div class="narrative-panel">
+        <h2>الأمن القومي والحياد الجغرافي</h2>
+        <p>بناء قواعد بيانات جغرافية وطنية مستقلة لضمان سيادة المعلومات والأمن المعلوماتي.</p>
+      </div>
+    </section>
+
+    <section id="s41" class="step" data-step="s41">
+      <div class="narrative-panel">
+        <h2>الوعي الإقليمي المشترك</h2>
+        <p>تبادل البيانات الجغرافية المحدودة مع الحلفاء لتعزيز الأمن المشترك ضد المخاطر الكونية.</p>
+      </div>
+    </section>
+    <section id="s42" class="step" data-step="s42">
+      <div class="narrative-panel">
+        <h2>تقنيات LiDAR في الدفاع</h2>
+        <p>استخدام الليزر الجوي لإنتاج خرائط ثلاثية الأبعاد فائقة الدقة للغابات والمدن المزدحمة.</p>
+      </div>
+    </section>
+    <section id="s43" class="step" data-step="s43">
+      <div class="narrative-panel">
+        <h2>تحليل الفجوات الأمنية</h2>
+        <p>اكتشاف المناطق التي تفتقر للتغطية الأمنية أو اللوجستية وتصحيح توزيع القوات.</p>
+      </div>
+    </section>
+    <section id="s44" class="step" data-step="s44">
+      <div class="narrative-panel">
+        <h2>مراقبة السواحل والقرصنة</h2>
+        <p>تحديد أنماط تحرك السفن المشبوهة في المياه الدولية والداخلية وحماية الاقتصاد.</p>
+      </div>
+    </section>
+    <section id="s45" class="step" data-step="s45">
+      <div class="narrative-panel">
+        <h2>أمن البيانات الجغرافية</h2>
+        <p>تشفير الخرائط وحماية خوادم GIS ضد الاختراق السيبراني الخارجي.</p>
+      </div>
+    </section>
+    <section id="s46" class="step" data-step="s46">
+      <div class="narrative-panel">
+        <h2>دور الذكاء الاصطناعي</h2>
+        <p>دمج AI مع GIS لاكتشاف الأهداف والتحركات بشكل آلي دون تدخل بشري دائم.</p>
+      </div>
+    </section>
+    <section id="s47" class="step" data-step="s47">
+      <div class="narrative-panel">
+        <h2>مستقبل الدفاع الجغرافي</h2>
+        <p>الانتقال نحو الخرائط الحية (Living Maps) التي تتحدث كل ثانية لخدمة الأمن الدفاعي.</p>
+      </div>
+    </section>
+    <section id="s48" class="step" data-step="s48">
+      <div class="narrative-panel">
+        <h2>الخاتمة الاستراتيجية</h2>
+        <p>الجغرافيا هي مسرح العمليات؛ ومن يمتلك أفضل خريطة يمتلك أفضل فرصة للنصر والأمان.</p>
+      </div>
+    </section>
+    <section id="s49" class="step fullscreen" data-step="s49">
+      <div class="content-box">
+        <h1 style="color: #10b981;"> أتممت اليوم الخامس 🎉</h1>
+        <p>لقد أدركت الآن مدى أهمية GIS في حماية الدول وبناء الاستقرار الإقليمي.</p>
+        <div style="margin-top: 30px;"><a href="day6.html" class="nav-btn" style="text-decoration:none;">اليوم السادس
+            ➔</a></div>
+      </div>
+    </section>
+    <section id="s50" class="step fullscreen" data-step="s50">
+      <div class="content-box">
+        <h2>نراكم غداً...</h2>
+        <p>غداً سننتقل لتطبيقات GIS في العمل البلدي والخدمات المجتمعية.</p>
+      </div>
+    </section>
+  </main>
+
+  <div class="story-nav">
+    <button id="prev-btn" class="nav-btn" disabled>السابق</button>
+    <button id="next-btn" class="nav-btn">التالي</button>
+    <button id="restart-btn" class="nav-btn">إعادة</button>
+  </div>
+
+  <script type="module">
+    import L from 'https://esm.sh/leaflet';
+
+    const map = L.map('map', {
+      zoomControl: false, scrollWheelZoom: false, dragging: false,
+      attributionControl: false, doubleClickZoom: false
+    }).setView([25.0, 45.0], 5);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', { zIndex: 1000 }).addTo(map);
+    const analysisLayer = L.layerGroup().addTo(map);
+
+    const tooltipBox = document.getElementById("map-tooltip");
+    const progressBar = document.getElementById("progress-bar");
+    const iconsContainer = document.getElementById("step-icons");
+
+    function setTooltip(text) { tooltipBox.innerHTML = text; }
+    function clear() { analysisLayer.clearLayers(); }
+
+    for (let i = 1; i <= 50; i++) {
+      const icon = document.createElement('div');
+      icon.className = 'step-icon'; icon.innerText = i; icon.id = `icon-s${i}`;
+      icon.onclick = () => document.getElementById(`s${i}`)?.scrollIntoView({ behavior: 'smooth' });
+      iconsContainer.appendChild(icon);
+    }
+
+    const actions = {
+      s1: () => { clear(); map.flyTo([25.0, 45.0], 5); setTooltip("اليوم الخامس: الأمن والدفاع الجغرافي."); },
+      s2: () => { clear(); map.flyTo([24.7, 46.7], 12); setTooltip("Situational Awareness: عين القائد على الميدان."); },
+      s3: () => { clear(); map.flyTo([25, 45], 4); setTooltip("نظم GIS: العقل المدبر للعمليات الدفاعية."); },
+      s4: () => { clear(); map.flyTo([28, 42], 5); setTooltip("البيئات الإقليمية: تحديات الصحراء والجبل والبحر."); },
+      s5: () => { clear(); map.flyTo([18.2, 42.5], 11); setTooltip(" Slope Analysis: تحديد مسارات الآليات الثقيلة."); },
+      s6: () => { clear(); L.circle([18.2, 42.5], { radius: 5000, color: 'white' }).addTo(analysisLayer); setTooltip("Viewshed: تخطيط نقاط المراقبة والسيطرة."); },
+      s7: () => { clear(); L.circle([26.5, 56.5], { radius: 50000, color: '#ef4444' }).addTo(analysisLayer); map.flyTo([26.5, 56.5], 8); setTooltip("مضيق هرمز: حماية الشريان الطاقي للعالم."); },
+      s8: () => { clear(); map.flyTo([12.6, 43.3], 8); setTooltip("باب المندب: تأمين الممرات الملاحية الدولية."); },
+      s9: () => { clear(); map.flyTo([30.0, 32.5], 9); setTooltip("قناة السويس: استجابة فورية لأزمات الملاحة."); },
+      s10: () => { clear(); map.flyTo([24.5, 46.5], 13); setTooltip("إدارة القواعد: تأمين المنشآت العسكرية."); },
+      s11: () => { clear(); L.circle([24.5, 46.5], { radius: 10000, color: 'orange' }).addTo(analysisLayer); setTooltip("Buffer Zones: أحزمة أمان حول المواقع الحساسة."); },
+      s12: () => { clear(); L.polyline([[24.5, 46.5], [25.0, 47.0]], { color: 'blue', dashArray: '5, 10' }).addTo(analysisLayer); setTooltip("Supply Chains: لوجستيات تضمن استمرارية القوة."); },
+      s13: () => { clear(); map.flyTo([24.7, 46.7], 15); setTooltip("Satellite Intel: الرصد الفضائي على مدار الساعة."); },
+      s14: () => { clear(); L.marker([24.71, 46.68]).addTo(analysisLayer); setTooltip("Asset Tracking: GPS يراقب تحرك الدوريات."); },
+      s15: () => { clear(); L.polyline([[34.0, 36.0], [33.0, 36.5]], { color: '#3b82f6', weight: 8 }).addTo(analysisLayer); map.flyTo([33.5, 36.2], 9); setTooltip("Border Security: تحصين الحدود بالذكاء المكاني."); },
+      s16: () => { clear(); L.circleMarker([33.4, 36.3], { color: 'red' }).addTo(analysisLayer); setTooltip("كشف الأنماط: سد الثغرات الجغرافية للتهريب."); },
+      s17: () => { clear(); map.flyTo([24.7, 46.7], 10); setTooltip("Critical Infrastructure: حماية عصب الدولة."); },
+      s18: () => { clear(); L.polyline([[28, 48], [30, 48]], { color: 'black', weight: 5 }).addTo(analysisLayer); setTooltip("Pipeline Security: مراقبة خطوط الطاقة الطويلة."); },
+      s19: () => { clear(); map.flyTo([0, 0], 2); setTooltip("Cyber GIS: حماية الفضاء الرقمي للمعلومات."); },
+      s20: () => { clear(); map.flyTo([25, 45], 5); setTooltip("Crisis Management: التنسيق فوق خريطة موحدة."); },
+      s21: () => { clear(); L.circle([24.7, 46.7], { radius: 40000, color: 'cyan', fillOpacity: 0.1 }).addTo(analysisLayer); setTooltip("Radar Coverage: محاكاة مدى كشف الرادارات."); },
+      s22: () => { clear(); map.flyTo([21.4, 39.8], 13); setTooltip("Crowd Management: تأمين التجمعات الكبرى."); },
+      s23: () => { clear(); L.polyline([[21.4, 39.8], [21.5, 39.9]], { color: 'red', weight: 3 }).addTo(analysisLayer); setTooltip("MEDEVAC: أسرع المسارات لإنقاذ الأرواح."); },
+      s24: () => { clear(); map.flyTo([26, 50], 9); setTooltip("Maritime Security: تأمين المياه الإقليمية."); },
+      s25: () => { clear(); for (let i = 0; i < 15; i++) L.circleMarker([24.7 + (Math.random() - 0.5) * 0.2, 46.7 + (Math.random() - 0.5) * 0.2], { radius: 5, color: 'purple' }).addTo(analysisLayer); setTooltip("Crime Heatmaps: استشراف أماكن الخطر."); },
+      s26: () => { clear(); map.flyTo([24.9, 46.7], 13); setTooltip("Airport Shield: حماية المدارج ضد الدرونز."); },
+      s27: () => { clear(); map.flyTo([24.7, 46.7], 10); setTooltip("Decision Support: شاشات القيادة والسيطرة."); },
+      s28: () => { clear(); map.flyTo([25, 45], 6); setTooltip("Simulations: تدريبات افتراضية بواقعية جغرافية."); },
+      s29: () => { clear(); map.setZoom(15); setTooltip("Camera Analytics: تغطية بصرية دون نقاط عمياء."); },
+      s30: () => { clear(); map.setZoom(14); setTooltip("Secure Urbanism: التخطيط كدرع للمدينة."); },
+      s31: () => { clear(); map.flyTo([30, 47], 8); setTooltip("Water Security: مراقبة السدود والمصادر."); },
+      s32: () => { clear(); map.flyTo([24.7, 46.7], 11); setTooltip("Power Grid Shield: حماية شبكات الكهرباء."); },
+      s33: () => { clear(); map.flyTo([34, 39], 12); setTooltip("Remote Sensing: رصد الأهداف بدقة ليلية."); },
+      s34: () => { clear(); L.marker([24.5, 46.5]).addTo(analysisLayer); setTooltip("Strategic Logistics: توزيع مخازن الإمداد."); },
+      s35: () => { clear(); map.setZoom(7); setTooltip("Comm Security: تخطيط تغطية الاتصالات الآمنة."); },
+      s36: () => { clear(); map.setZoom(14); setTooltip("Drone Paths: مسارات طيران مسيرة دقيقة."); },
+      s37: () => { clear(); map.flyTo([25, 45], 4); setTooltip("Eco-Defense: موازنة العمليات مع البيئة."); },
+      s38: () => { clear(); map.flyTo([34, 40], 6); setTooltip("Historical Intel: قراءة الماضي لفهم الحاضر."); },
+      s39: () => { clear(); map.flyTo([24.7, 46.7], 10); setTooltip("Data Fusion: دمج المصادر فوق الخريطة."); },
+      s40: () => { clear(); map.flyTo([24, 46], 5); setTooltip("National Sovereignty: سيادة البيانات الجغرافية."); },
+      s41: () => { clear(); map.flyTo([25, 45], 4); setTooltip("Regional Stability: الأمن عبر التعاون الجغرافي."); },
+      s42: () => { clear(); map.flyTo([24.7, 46.7], 14); setTooltip("LiDAR Intel: خرائط 3D للمباني والمدن."); },
+      s43: () => { clear(); map.setZoom(6); setTooltip("Gap Analysis: سد الفجوات في التوزيع الأمني."); },
+      s44: () => { clear(); map.flyTo([26, 51], 8); setTooltip("Anti-Piracy: حماية الموانئ والاستثمارات."); },
+      s45: () => { clear(); map.flyTo([0, 0], 2); setTooltip("Data Encryption: حماية الخرائط ضد الاختراق."); },
+      s46: () => { clear(); map.flyTo([24.7, 46.7], 11); setTooltip("AI Surveillance: الرصد الآلي للتحركات بقوة AI."); },
+      s47: () => { clear(); map.flyTo([25, 45], 5); setTooltip("Living Maps: المستقبل حيث تتنفس الخارطة."); },
+      s48: () => { clear(); map.flyTo([34, 39], 6); setTooltip("Ethical Defense: الجغرافيا كأمانة ومسؤولية."); },
+      s49: () => { clear(); map.flyTo([24.7136, 46.6753], 6); setTooltip("برافو! لقد أدركت قوة الجغرافيا في حماية الوطن."); },
+      s50: () => { clear(); map.flyTo([34.8021, 38.9968], 7); setTooltip("نراكم غداً في تطبيقات العمل البلدي والخدمي."); }
+    };
+
+    const steps = document.querySelectorAll(".step");
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          const num = parseInt(id.replace('s', ''));
+          progressBar.style.width = (num / 50 * 100) + "%";
+          if (actions[id]) actions[id]();
+          steps.forEach(s => s.classList.remove('active'));
+          entry.target.classList.add('active');
+          document.querySelectorAll('.step-icon').forEach(icon => {
+            const iconNum = parseInt(icon.id.replace('icon-s', ''));
+            icon.classList.toggle('active', iconNum === num);
+            icon.classList.toggle('done', iconNum < num);
+          });
+          document.getElementById('prev-btn').disabled = (num === 1);
+          document.getElementById('next-btn').disabled = (num === 50);
+        }
+      });
+    }, { threshold: 0.6 });
+
+    steps.forEach(s => observer.observe(s));
+
+    document.getElementById('next-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.nextElementSibling?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('prev-btn').onclick = () => [...steps].find(s => s.classList.contains('active'))?.previousElementSibling?.scrollIntoView({ behavior: 'smooth' });
+    document.getElementById('restart-btn').onclick = () => steps[0].scrollIntoView({ behavior: 'smooth' });
+  </script>
+</body>
+
+</html>

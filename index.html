@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>بوابة دورة GIS - المستوى 0</title>
+
+    <link rel="stylesheet" href="css/leaflet.css" />
+
+   <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link href="css/font.css"
+        rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Tajawal", sans-serif;
+        }
+
+        :root {
+            --primary: #0082ff;
+            --secondary: #8a2be2;
+            --accent: #00ffb3;
+            --dark: #061a40;
+            --light: #f4f9ff;
+            --glass-bg: rgba(255, 255, 255, 0.15);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --shadow: 0 18px 60px rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            overflow-x: hidden;
+            background: var(--light);
+            color: var(--dark);
+        }
+
+        /* MAP BACKGROUND */
+        #map-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+        }
+
+        /* overlay gradient */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 2;
+            background: linear-gradient(135deg,
+                    rgba(6, 26, 64, 0.4),
+                    rgba(8, 61, 119, 0.3),
+                    rgba(0, 130, 255, 0.2));
+            backdrop-filter: blur(3px);
+        }
+
+        /* progress bar */
+        .top-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 6px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .top-progress span {
+            display: block;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+            box-shadow: 0 0 15px var(--primary);
+            transition: width 0.4s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+        }
+
+        /* MAIN CONTENT */
+        .content {
+            position: relative;
+            z-index: 5;
+            min-height: 100vh;
+            padding: 80px 20px 60px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 60px 40px;
+            border-radius: 30px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(25px);
+            animation: slideUp 1s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 50px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            font-weight: 700;
+            font-size: 14px;
+            color: #fff;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: clamp(32px, 5vw, 64px);
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 20px;
+            color: #f70;
+            text-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .subtitle {
+            font-size: clamp(16px, 2.5vw, 20px);
+            line-height: 1.8;
+            max-width: 900px;
+            margin: 0 auto 30px;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+
+        .presenter {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0070ff;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .cta-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 16px 32px;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 10px 20px rgba(0, 130, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 130, 255, 0.4);
+        }
+
+        .btn-light {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-light:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        /* INFO CARD */
+        .card {
+            padding: 40px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: var(--shadow);
+            color: var(--dark);
+        }
+
+        .card h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            font-weight: 800;
+            color: var(--primary);
+            position: relative;
+            padding-right: 15px;
+        }
+
+        .card h2::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 24px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+
+        .card p {
+            font-size: 17px;
+            line-height: 2;
+            color: #334e68;
+            margin-bottom: 20px;
+        }
+
+        /* TABLE */
+        .table-box {
+            margin-top: 30px;
+            overflow: hidden;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            background: #fff;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 20px;
+            text-align: right;
+            border-bottom: 1px solid #f0f4f8;
+        }
+
+        th {
+            background: #f8fafc;
+            color: var(--dark);
+            font-weight: 800;
+            font-size: 15px;
+        }
+
+        td {
+            font-weight: 500;
+            font-size: 15px;
+            color: #486581;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #f1f5f9;
+        }
+
+        /* DAYS NAV */
+        .nav-section {
+            padding: 40px;
+            border-radius: 30px;
+            background: #333;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(25px);
+            text-align: center;
+        }
+
+        .nav-section h2 {
+            font-size: 32px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+
+        .nav-section p {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .day-btn {
+            padding: 24px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .day-btn:hover {
+            transform: translateY(-8px);
+            background: rgba(255, 255, 255, 0.2);
+            border-color: var(--accent);
+            box-shadow: 0 10px 20px rgba(0, 255, 179, 0.2);
+        }
+
+        .day-btn span {
+            font-size: 18px;
+            color: var(--accent);
+        }
+
+        footer {
+            padding: 40px 20px;
+            text-align: center;
+            color: #14142a;
+            font-weight: 500;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            margin-top: 40px;
+        }
+
+        /* MOBILE */
+        @media(max-width: 768px) {
+
+            .hero,
+            .card,
+            .nav-section {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 36px;
+            }
+
+            .days-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* animation */
+        .fade-in {
+            animation: fadeIn 1s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Progress Bar -->
+    <div class="top-progress">
+        <span id="progress-bar"></span>
+    </div>
+
+    <!-- Map Background -->
+    <div id="map-bg"></div>
+
+    <!-- Overlay -->
+    <div class="overlay"></div>
+
+    <!-- Content -->
+    <div class="content">
+        <div class="container fade-in">
+
+            <div class="hero">
+                <div class="badge">💎 GIS Mastery Series - Edition 2026</div>
+
+                <h1>دورة التوعية الجغرافية ونشر ثقافة نظم المعلومات الجغرافية GIS </h1>
+
+                <p class="subtitle">تهدف الدورة إلى ترسيخ مفهوم GIS كأداة استراتيجية لاتخاذ للقرار. سنتعلم في هذه الدورة كيف تتحول البيانات الصماء إلى خرائط ذكية ورؤى تحليلية تدعم مستقبل المؤسسات.</p>
+
+                <div class="presenter">
+                    <span>👨‍🏫 المقدم: المهندس ياسر المفعلاني</span>
+                    <span style="opacity:0.5; margin:0 10px;">|</span>
+                    <span>📍 المستوى الاحترافي 0</span>
+                </div>
+
+                <div class="cta-row">
+                    <a href="day1.html" class="btn btn-primary">
+                        <span>🚀 المحاضرة الأولى</span>
+                    </a>
+                    <a href="#days" class="btn btn-light">
+                        <span>📚 محتوى الدورة</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🎯 الرؤية والهدف</h2>
+                <p>
+                    هذه الدورة ليست مجرد تدريب تقني، بل هي <strong>بناء عقلية جغرافية</strong>. نهدف إلى تمكين المتدرب
+                    من قراءة المكان، تحليل البيانات، واستخدام منصة ArcGIS Pro و Esri StoryMaps لتحويل التحديات الإدارية
+                    والميدانية إلى حلول مكانية ملموسة.
+                </p>
+
+                <div class="table-box">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>المرحلة</th>
+                                <th>الموضوع الرئيسي</th>
+                                <th>الأدوات الاستراتيجية</th>
+                                <th>الهدف الختامي</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>التأسيس</strong></td>
+                                <td>مفاهيم GIS والبيانات الحقيقية</td>
+                                <td>ArcGIS Online / Basics</td>
+                                <td>امتلاك لغة المكان</td>
+                            </tr>
+                            <tr>
+                                <td><strong>التطبيق</strong></td>
+                                <td>التطبيقات الحكومية والأمنية</td>
+                                <td>Dashboards / StoryMaps</td>
+                                <td>دعم صناعة القرار</td>
+                            </tr>
+                            <tr>
+                                <td><strong>الاحتراف</strong></td>
+                                <td>تحليل البيانات وإنتاج الخرائط</td>
+                                <td>ArcGIS Pro / Desktop</td>
+                                <td>بناء مشاريع متكاملة</td>
+                            </tr>
+                            <tr>
+                                <td><strong>التنفيذ</strong></td>
+                                <td>المشاريع العسكرية والميدانية</td>
+                                <td>Terrain / Intelligence</td>
+                                <td>الحل المكاني الميداني</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="nav-section" id="days">
+                <h2>📅 خريطة الأيام التدريبية</h2>
+                <p>
+                    منهج مكثف مصمم بأسلوب Scrollytelling التفاعلي لضمان تجربة تعليمية شيقة تجمع بين المعلومة والتطبيق
+                    البصري.
+                </p>
+
+                <div class="days-grid">
+                    <a class="day-btn" href="day1.html">اليوم 1: مقدمة GIS <span>▶</span></a>
+                    <a class="day-btn" href="day2.html">اليوم 2: التطبيقات الحكومية <span>▶</span></a>
+                    <a class="day-btn" href="day3.html">اليوم 3: ArcGIS Pro <span>▶</span></a>
+                    <a class="day-btn" href="day4.html">اليوم 4: لغة الخرائط <span>▶</span></a>
+                    <a class="day-btn" href="day5.html">اليوم 5: الدفاع والأمن الإقليمي <span>▶</span></a>
+                    <a class="day-btn" href="day6.html">اليوم 6: بناء مشروع GIS Desktop + Web <span>▶</span></a>
+                    <a class="day-btn" href="day7.html">اليوم 7: تطبيق عملي ArcGIS Pro <span>▶</span></a>
+                    <a class="day-btn" href="final-day.html">اليوم 8: مشروع عسكري عملي <span>▶</span></a>
+                </div>
+            </div>
+
+            <footer>
+                © 2026 | دورة GIS المستوى 0 | إعداد وتقديم: المهندس ياسر المفعلاني
+            </footer>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import L from "https://esm.sh/leaflet";
+
+        const map = L.map("map-bg", {
+            zoomControl: false,
+            attributionControl: false,
+            dragging: false,
+            scrollWheelZoom: false,
+            doubleClickZoom: false,
+            boxZoom: false,
+            keyboard: false
+        }).setView([33.5138, 36.2765], 5);
+
+        const light = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png");
+        const dark = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png");
+        const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}");
+
+        light.addTo(map);
+
+        // smooth camera animation
+        const views = [
+            { center: [33.5138, 36.2765], zoom: 5, basemap: light },       // Syria
+            { center: [24.7136, 46.6753], zoom: 5, basemap: light },       // Riyadh
+            { center: [30.0444, 31.2357], zoom: 5, basemap: satellite },   // Cairo
+            { center: [25.2048, 55.2708], zoom: 6, basemap: light },       // Dubai
+            { center: [41.0082, 28.9784], zoom: 5, basemap: dark },        // Istanbul
+            { center: [35.6892, 51.3890], zoom: 5, basemap: satellite },   // Tehran
+            { center: [31.7683, 35.2137], zoom: 6, basemap: light },       // Jerusalem
+            { center: [21.3891, 39.8579], zoom: 6, basemap: satellite }    // Makkah
+        ];
+
+        let current = 0;
+
+        function setBasemap(layer) {
+            [light, dark, satellite].forEach(l => map.removeLayer(l));
+            layer.addTo(map);
+        }
+
+        function animateMap() {
+            const v = views[current];
+            setBasemap(v.basemap);
+
+            map.flyTo(v.center, v.zoom, {
+                duration: 4,
+                easeLinearity: 0.25
+            });
+
+            current++;
+            if (current >= views.length) current = 0;
+        }
+
+        animateMap();
+        setInterval(animateMap, 7000);
+
+        // Progress Bar based on scroll
+        const progress = document.getElementById("progress-bar");
+
+        window.addEventListener("scroll", () => {
+            const scrollTop = window.scrollY;
+            const docHeight = document.body.scrollHeight - window.innerHeight;
+            const percent = (scrollTop / docHeight) * 100;
+            progress.style.width = percent + "%";
+        });
+
+        // Floating marker effect
+        const points = [
+            [33.5138, 36.2765],
+            [30.0444, 31.2357],
+            [24.7136, 46.6753],
+            [25.2048, 55.2708],
+            [35.6892, 51.3890],
+            [41.0082, 28.9784]
+        ];
+
+        const markers = [];
+
+        points.forEach((p, i) => {
+            const m = L.circleMarker(p, {
+                radius: 7,
+                color: "#ffffff",
+                weight: 2,
+                fillOpacity: 0.8
+            }).addTo(map);
+
+            markers.push(m);
+        });
+
+        // Pulse animation on markers
+        let pulse = true;
+        setInterval(() => {
+            markers.forEach(m => {
+                m.setStyle({ radius: pulse ? 12 : 7, fillOpacity: pulse ? 0.35 : 0.85 });
+            });
+            pulse = !pulse;
+        }, 900);
+
+    </script>
+    <script src="security.js"></script>
+</body>
+
+</html>

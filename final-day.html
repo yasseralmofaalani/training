@@ -1,0 +1,1941 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>اليوم الأخير: تحليل نظام العمليات العسكرية - GIS المستوى 0</title>
+
+     <link rel="stylesheet" href="css/leaflet.css" />
+
+   <!-- <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
+    <link href="css/font.css"
+        rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: rgba(255, 255, 255, 0.08);
+      --panel2: rgba(255, 255, 255, 0.12);
+      --text: #ffffff;
+      --muted: rgba(255, 255, 255, 0.72);
+      --accent: #00d4ff;
+      --accent2: #f1c40f;
+      --danger: #ff4d4d;
+      --ok: #2ecc71;
+      --glass: rgba(255, 255, 255, 0.08);
+      --border: rgba(255, 255, 255, 0.15);
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: "Tajawal", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #101b2f, #060b14);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ====== MAP ====== */
+    #map-container {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      filter: contrast(1.05) saturate(1.1);
+    }
+
+    /* ====== OVERLAY UI ====== */
+    .topbar {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(1000px, 92%);
+      z-index: 9999;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand .logo {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), #0077ff);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.25);
+    }
+
+    .brand .title {
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .brand .subtitle {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .progress-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-inline: 10px;
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .progress-bar span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), #2ecc71);
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+
+    .step-indicator {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .restart-btn {
+      border: 0;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.12);
+      color: white;
+      cursor: pointer;
+      font-weight: 700;
+      transition: 0.2s;
+    }
+
+    .restart-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      transform: translateY(-1px);
+    }
+
+    /* ====== TOOLTIP OVER MAP ====== */
+    .map-tooltip {
+      position: fixed;
+      bottom: 18px;
+      left: 18px;
+      z-index: 9999;
+      width: min(420px, 90%);
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      animation: fadeIn 0.4s ease;
+    }
+
+    .map-tooltip h4 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .map-tooltip p {
+      margin: 0;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 1.7;
+    }
+
+    /* ====== MINI LEGEND ====== */
+    .mini-legend {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      z-index: 9999;
+      width: min(320px, 90%);
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+    }
+
+    .mini-legend h4 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: var(--accent2);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      margin-bottom: 6px;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: white;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    /* ====== INFO CARD ====== */
+    .info-card {
+      position: fixed;
+      top: 90px;
+      left: 18px;
+      z-index: 9999;
+      width: min(360px, 92%);
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      display: none;
+    }
+
+    .info-card.active {
+      display: block;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .info-card h4 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: #2ecc71;
+    }
+
+    .info-card p {
+      margin: 0;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 1.7;
+    }
+
+    /* ====== SCROLL CONTENT ====== */
+    main#scrolly {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+    }
+
+    section.step {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 18px;
+      scroll-margin-top: 120px;
+    }
+
+    .panel {
+      width: min(860px, 95%);
+      border-radius: var(--radius);
+      padding: 24px 22px;
+      background: rgba(0, 0, 0, 0.62);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      box-shadow: var(--shadow);
+      animation: fadeIn 0.5s ease;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 22px;
+      color: var(--accent);
+    }
+
+    .panel p {
+      margin: 0;
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.88);
+      line-height: 1.9;
+    }
+
+    .panel ul {
+      margin: 14px 0 0;
+      padding: 0 20px 0 0;
+      line-height: 2;
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 14px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0, 212, 255, 0.15);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .highlight {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(241, 196, 15, 0.12);
+      border: 1px solid rgba(241, 196, 15, 0.25);
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    /* ====== NAV ====== */
+    .story-nav {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      gap: 12px;
+    }
+
+    .nav-btn {
+      border: 0;
+      padding: 12px 18px;
+      border-radius: 16px;
+      cursor: pointer;
+      font-weight: 800;
+      color: white;
+      background: #ff4d4d;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(8px);
+      transition: 0.2s;
+    }
+
+    .nav-btn:hover {
+      transform: translateY(-2px);
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ====== SPOTLIGHT ====== */
+    .spotlight {
+      position: fixed;
+      inset: 0;
+      z-index: 5000;
+      pointer-events: none;
+      background: radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.85) 55%);
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+
+    .spotlight.active {
+      opacity: 1;
+    }
+
+    /* ====== ICON MARKERS ====== */
+    .unit-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      font-weight: 800;
+      color: white;
+      border: 2px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 0 14px rgba(0, 0, 0, 0.55);
+    }
+
+    .friendly {
+      background: linear-gradient(135deg, #3498db, #1abc9c);
+    }
+
+    .critical {
+      background: linear-gradient(135deg, #f39c12, #e67e22);
+    }
+
+    .risk {
+      background: linear-gradient(135deg, #ff4d4d, #c0392b);
+    }
+
+    .pulse {
+      animation: pulse 1.4s infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.18);
+        opacity: 0.75;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ====== MOBILE ====== */
+    @media(max-width: 768px) {
+      .topbar {
+        flex-direction: column;
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .progress-wrap {
+        width: 100%;
+        margin-inline: 0;
+      }
+
+      .story-nav {
+        bottom: 140px;
+      }
+
+      .panel h2 {
+        font-size: 18px;
+      }
+
+      .panel p {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="map-container">
+    <div id="map"></div>
+  </div>
+
+  <div class="spotlight" id="spotlight"></div>
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">GIS</div>
+      <div>
+        <div class="title">اليوم الأخير: تحليل مشروع نظام العمليات</div>
+        <div class="subtitle">Military Operations System (عرض تفاعلي تدريبي)</div>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar"><span id="progressFill"></span></div>
+      <div class="step-indicator" id="stepIndicator">1 / 45</div>
+    </div>
+<button class="restart-btn" id="openIframeBtn" style="background:#3498db;">🌐 عرض الموقع الحقيقي</button>
+
+    <button class="restart-btn" id="restartBtn">🔄 إعادة تشغيل</button>
+	
+  </div>
+
+  <div class="info-card" id="infoCard">
+    <h4>معلومة سريعة</h4>
+    <p id="infoText">...</p>
+  </div>
+
+  <div class="map-tooltip">
+    <h4 id="tooltipTitle">شرح مباشر</h4>
+    <p id="tooltipText">ابدأ التمرير لرؤية كيف يتحول النظام إلى قرار.</p>
+  </div>
+
+  <div class="mini-legend">
+    <h4 id="legendTitle">Legend</h4>
+    <div id="legendItems"></div>
+  </div>
+<!-- Modal Iframe -->
+<div id="iframeModal" style="display:none;position:fixed;inset:0;z-index:10000;
+    background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
+  <div style="position:absolute;inset:0;margin:auto;max-width:95%;max-height:95%;
+      border-radius:14px;overflow:hidden;border:3px solid #fff;">
+    <div style="position:relative;height:42px;background:rgba(0,0,0,0.64);
+        display:flex;align-items:center;justify-content:space-between;padding:0 14px;">
+      <div style="color:#fff;font-size:14px;font-weight:700;">عرض الموقع الحقيقي</div>
+      <button id="closeIframe" style="background:#e74c3c;color:#fff;border:none;
+          padding:6px 12px;border-radius:8px;cursor:pointer;font-weight:800;">✖️ إغلاق</button>
+    </div>
+    <iframe id="liveIframe" src=""
+        style="width:100%;height:calc(100% - 42px);border:none;"></iframe>
+  </div>
+</div>
+
+  <main id="scrolly">
+
+    <!-- 45 SECTIONS -->
+    <section class="step" data-step="s1">
+      <div class="panel">
+        <span class="tag">1 / 45</span>
+        <h2>المقدمة: لماذا هذا المشروع مهم؟</h2>
+        <p>
+          في اليوم الأخير سنحلل مشروع حقيقي تم بناؤه مسبقاً: <b>Military Operations System</b>.
+          الهدف هو فهم كيف يتحول GIS من "خريطة" إلى نظام قرار شامل يدعم القيادة، التحليل، وإدارة الموارد.
+        </p>
+        <div class="highlight">الخريطة ستبدأ من الشرق الأوسط لإظهار مفهوم الدفاع الإقليمي.</div>
+      </div>
+    </section>
+
+    <section class="step" data-step="s2">
+      <div class="panel">
+        <span class="tag">2 / 45</span>
+        <h2>فكرة النظام (Operational GIS Platform)</h2>
+        <p>
+          النظام ليس مجرد عرض بيانات، بل هو منصة توحّد طبقات متعددة: حدود، منشآت، مسارات، مخاطر، تحليلات، وإحصائيات.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s3">
+      <div class="panel">
+        <span class="tag">3 / 45</span>
+        <h2>الهدف الأساسي: صورة عمليات موحدة COP</h2>
+        <p>
+          COP تعني أن كل الجهات ترى نفس الحقيقة الميدانية على الخريطة: نفس البيانات، نفس التحديث، نفس المؤشرات.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s4">
+      <div class="panel">
+        <span class="tag">4 / 45</span>
+        <h2>نطاق الدفاع الإقليمي (Regional Defense)</h2>
+        <p>
+          في الأنظمة الحديثة يتم تحليل الإقليم كشبكة مترابطة: الحدود، المضائق البحرية، خطوط الطاقة، والمجال الجوي.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s5">
+      <div class="panel">
+        <span class="tag">5 / 45</span>
+        <h2>طبقات استراتيجية: مضائق وممرات بحرية</h2>
+        <p>
+          GIS يسمح بتحليل المضائق مثل باب المندب، هرمز، وقناة السويس لأنها نقاط تؤثر على الأمن الاقتصادي والعسكري.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s6">
+      <div class="panel">
+        <span class="tag">6 / 45</span>
+        <h2>المفهوم الأول: حماية المنشآت الحيوية</h2>
+        <p>
+          المنشآت الحيوية تشمل المطارات، الموانئ، محطات الطاقة، والمراكز الحكومية. GIS يحدد مناطق الحماية حولها.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s7">
+      <div class="panel">
+        <span class="tag">7 / 45</span>
+        <h2>إضافة منشآت حيوية كنقاط Assets</h2>
+        <p>
+          هنا يظهر مفهوم Asset Management: كل منشأة لها موقع + بيانات وصفية + مستوى أولوية + حالة تشغيل.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s8">
+      <div class="panel">
+        <span class="tag">8 / 45</span>
+        <h2>تحليل Buffer: مناطق الحماية متعددة الطبقات</h2>
+        <p>
+          يتم بناء نطاقات أمنية حول المنشأة: نطاق مراقبة، نطاق تفتيش، نطاق تدخل سريع.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s9">
+      <div class="panel">
+        <span class="tag">9 / 45</span>
+        <h2>مراقبة الحدود: Border Monitoring</h2>
+        <p>
+          الحدود ليست خطاً فقط. GIS يحللها كنظام: معابر، طرق، مناطق جبلية، مناطق فراغ.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s10">
+      <div class="panel">
+        <span class="tag">10 / 45</span>
+        <h2>تحليل التضاريس (Terrain)</h2>
+        <p>
+          التضاريس تحدد سهولة الحركة، نقاط الرصد، ومسارات الدوريات. هنا نعرض مفهوم الانحدار والارتفاع.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s11">
+      <div class="panel">
+        <span class="tag">11 / 45</span>
+        <h2>تحليل Viewshed (خط الرؤية)</h2>
+        <p>
+          من أهم التحليلات: تحديد المناطق المرئية من نقطة مراقبة أو برج رادار.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s12">
+      <div class="panel">
+        <span class="tag">12 / 45</span>
+        <h2>مفهوم الإنذار المبكر Early Warning</h2>
+        <p>
+          الإنذار المبكر يعتمد على شبكة حساسات/رادارات + تحليل مكاني + تنبيه تلقائي عند تغير نمط الحركة.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s13">
+      <div class="panel">
+        <span class="tag">13 / 45</span>
+        <h2>تمثيل نقاط مراقبة (Sensors)</h2>
+        <p>
+          تظهر على الخريطة نقاط رصد افتراضية مع نطاق تغطية دائري يوضح قوة المراقبة.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s14">
+      <div class="panel">
+        <span class="tag">14 / 45</span>
+        <h2>مفهوم المخاطر Risk Zones</h2>
+        <p>
+          المخاطر قد تكون أمنية أو طبيعية. GIS يحولها إلى طبقات مكانية قابلة للتحليل.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s15">
+      <div class="panel">
+        <span class="tag">15 / 45</span>
+        <h2>Heatmap: خريطة كثافة المخاطر</h2>
+        <p>
+          بدل النقاط العشوائية، نستخدم Heatmap لفهم أين تتركز المخاطر، وكيف تنتقل بمرور الزمن.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s16">
+      <div class="panel">
+        <span class="tag">16 / 45</span>
+        <h2>الدفاع الإقليمي = شبكة إمداد</h2>
+        <p>
+          في الواقع الأمني، اللوجستيات هي العمود الفقري: طرق الإمداد، الوقود، نقاط التخزين، خطوط النقل.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s17">
+      <div class="panel">
+        <span class="tag">17 / 45</span>
+        <h2>Network Analysis: تحليل المسارات</h2>
+        <p>
+          النظام يستطيع اقتراح المسار الأكثر أماناً أو الأسرع بناءً على المخاطر والحواجز.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s18">
+      <div class="panel">
+        <span class="tag">18 / 45</span>
+        <h2>نقاط الاختناق Chokepoints</h2>
+        <p>
+          GIS يحدد الطرق التي إن تم إغلاقها تتعطل الحركة في كامل الإقليم (جسر، ممر جبلي، معبر).
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s19">
+      <div class="panel">
+        <span class="tag">19 / 45</span>
+        <h2>توزيع الموارد Resource Allocation</h2>
+        <p>
+          أين يجب أن توضع المخازن أو نقاط الدعم بحيث تقل المسافة وتزداد كفاءة الاستجابة؟
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s20">
+      <div class="panel">
+        <span class="tag">20 / 45</span>
+        <h2>الانتقال إلى سوريا (State-Level Analysis)</h2>
+        <p>
+          الآن ننتقل من المستوى الإقليمي إلى مستوى دولة واحدة لإظهار كيف يتم بناء التحليل خطوة بخطوة.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s21">
+      <div class="panel">
+        <span class="tag">21 / 45</span>
+        <h2>تصنيف الطبقات: منشآت - طرق - مناطق - مراكز</h2>
+        <p>
+          نجاح النظام يعتمد على تنظيم الطبقات (Layer Management) مع رموز واضحة وLegend ذكي.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s22">
+      <div class="panel">
+        <span class="tag">22 / 45</span>
+        <h2>الربط مع البيانات الوصفية Attributes</h2>
+        <p>
+          كل نقطة على الخريطة هي سجل في قاعدة بيانات: الاسم، النوع، الحالة، الأولوية، التحديث.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s23">
+      <div class="panel">
+        <span class="tag">23 / 45</span>
+        <h2>مفهوم العمليات: Zones of Control</h2>
+        <p>
+          تقسيم الخريطة إلى مناطق سيطرة ومراقبة لتحديد مناطق التدخل والمسؤوليات.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s24">
+      <div class="panel">
+        <span class="tag">24 / 45</span>
+        <h2>تحليل التداخل Spatial Overlay</h2>
+        <p>
+          Overlay يعني دمج طبقتين لإنتاج قرار: (خطر + منشآت) أو (طرق + مناطق مراقبة).
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s25">
+      <div class="panel">
+        <span class="tag">25 / 45</span>
+        <h2>تحديد نقاط دعم (Support Points)</h2>
+        <p>
+          نقاط الدعم قد تكون إسعاف، تموين، اتصالات. النظام يضعها ضمن توزيع مكاني منطقي.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s26">
+      <div class="panel">
+        <span class="tag">26 / 45</span>
+        <h2>Dashboards: تحويل الخريطة إلى مركز قيادة</h2>
+        <p>
+          Dashboard يعني أن القائد يرى الخريطة + أرقام + مخططات + إنذارات في شاشة واحدة.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s27">
+      <div class="panel">
+        <span class="tag">27 / 45</span>
+        <h2>التحليل الإحصائي: مؤشرات التغطية والجاهزية</h2>
+        <p>
+          النظام ينتج مؤشرات مثل: عدد الأصول، عدد النقاط الحرجة، نسبة التغطية، عدد الإنذارات.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s28">
+      <div class="panel">
+        <span class="tag">28 / 45</span>
+        <h2>التحليل الزمني (Temporal Analytics)</h2>
+        <p>
+          قيمة GIS ليست في الموقع فقط، بل في الزمن أيضاً: متى زادت المخاطر؟ متى تحركت البيانات؟
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s29">
+      <div class="panel">
+        <span class="tag">29 / 45</span>
+        <h2>تنبيه تلقائي عند تغير نمط الحركة</h2>
+        <p>
+          هذا مفهوم مهم في الأنظمة الحديثة: Event-driven GIS حيث التغيير يولد تنبيه.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s30">
+      <div class="panel">
+        <span class="tag">30 / 45</span>
+        <h2>الانتقال إلى مدينة: حلب (Urban Tactical GIS)</h2>
+        <p>
+          الآن ننتقل إلى مستوى المدينة لإظهار قوة GIS في العمليات الحضرية، وإدارة الموارد بشكل دقيق.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s31">
+      <div class="panel">
+        <span class="tag">31 / 45</span>
+        <h2>تجزئة المدينة إلى قطاعات Sectors</h2>
+        <p>
+          تقسيم المدينة إلى قطاعات يسهل إدارة العمليات ويقلل زمن الاستجابة.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s32">
+      <div class="panel">
+        <span class="tag">32 / 45</span>
+        <h2>تحليل Service Area داخل المدينة</h2>
+        <p>
+          تحديد المناطق التي يمكن الوصول إليها خلال 5 دقائق، 10 دقائق، 15 دقيقة.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s33">
+      <div class="panel">
+        <span class="tag">33 / 45</span>
+        <h2>تحديد منشآت حساسة داخل المدينة</h2>
+        <p>
+          منشآت مثل مراكز الاتصالات، المستشفيات، محطات الطاقة. يتم إعطاؤها أولوية عالية.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s34">
+      <div class="panel">
+        <span class="tag">34 / 45</span>
+        <h2>تحليل المخاطر الحضري Urban Risk</h2>
+        <p>
+          يتم تحويل المدينة إلى خريطة مخاطر تعتمد على الكثافة السكانية، البنية التحتية، وسجل الأحداث.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s35">
+      <div class="panel">
+        <span class="tag">35 / 45</span>
+        <h2>تخطيط نقاط انتشار (Monitoring Coverage)</h2>
+        <p>
+          نحدد نقاط مراقبة موزعة بحيث تقل الفراغات وتزداد القدرة على المراقبة والتحكم.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s36">
+      <div class="panel">
+        <span class="tag">36 / 45</span>
+        <h2>عرض البيانات بشكل رمزي واضح (Symbology)</h2>
+        <p>
+          اللون والرمز ليسا زينة. هما لغة. النظام يجب أن يكون واضحاً حتى تحت ضغط القرار.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s37">
+      <div class="panel">
+        <span class="tag">37 / 45</span>
+        <h2>إدارة الصلاحيات (RBAC)</h2>
+        <p>
+          ليس كل مستخدم يرى كل شيء. GIS الدفاعي يعتمد على صلاحيات دقيقة حسب الدور.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s38">
+      <div class="panel">
+        <span class="tag">38 / 45</span>
+        <h2>أهمية السجل التاريخي Logs</h2>
+        <p>
+          النظام يسجل كل تغيير: من أضاف؟ من عدّل؟ متى؟ وهذا مهم للأمن والمراجعة والتحقيق.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s39">
+      <div class="panel">
+        <span class="tag">39 / 45</span>
+        <h2>قوة النظام: تحويل البيانات إلى قرار</h2>
+        <p>
+          الخريطة + التحليل + الإحصائيات = قرار سريع ودقيق.
+          هذه هي القيمة الحقيقية لأي نظام GIS دفاعي.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s40">
+      <div class="panel">
+        <span class="tag">40 / 45</span>
+        <h2>كيف يدعم النظام وزارة الدفاع؟</h2>
+        <p>
+          وزارة الدفاع تحتاج منصة تجمع كل شيء: منشآت، مراقبة، لوجستيات، جاهزية، حدود، تقارير، وDashboards.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s41">
+      <div class="panel">
+        <span class="tag">41 / 45</span>
+        <h2>تكامل النظام مع نظم أخرى</h2>
+        <p>
+          يمكن ربطه مع أنظمة الاتصالات، أنظمة البلاغات، أنظمة الموارد البشرية، وأنظمة المراقبة.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s42">
+      <div class="panel">
+        <span class="tag">42 / 45</span>
+        <h2>قابلية التوسع: من مدينة إلى دولة إلى إقليم</h2>
+        <p>
+          نفس النظام يمكن توسيعه بسهولة إذا كان مبنياً على قاعدة بيانات GIS صحيحة ومعايير طبقات واضحة.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s43">
+      <div class="panel">
+        <span class="tag">43 / 45</span>
+        <h2>التقارير والتحويل إلى PDF</h2>
+        <p>
+          النظام يجب أن ينتج تقارير رسمية: خرائط + جداول + مؤشرات + تحليل مختصر لدعم القرار.
+        </p>
+      </div>
+    </section>
+
+    <section class="step" data-step="s44">
+      <div class="panel">
+        <span class="tag">44 / 45</span>
+        <h2>الملخص النهائي</h2>
+        <p>
+          هذا المشروع يثبت أن GIS ليس برنامج خرائط، بل نظام قيادة وتحليل واتخاذ قرار.
+        </p>
+        <div class="highlight">
+          GIS الدفاعي = بيانات + تحليلات + مراقبة + Dashboards + تقارير + صلاحيات.
+        </div>
+      </div>
+    </section>
+
+    <section class="step" data-step="s45">
+      <div class="panel">
+        <span class="tag">45 / 45</span>
+        <h2>النهاية: عرض المشروع الحقيقي</h2>
+        <p>
+          الآن بعد فهم كل فكرة، يمكن استعراض الموقع الحقيقي مباشرة:
+          <br />
+          <b>Military Operations System</b>
+          <br />
+          وتحليل كيف يمكن تحويله إلى منصة جاهزة للاستخدام المؤسسي.
+        </p>
+        <div class="highlight">
+          رابط المشروع: yasseralmofaalani.github.io/military-operations-system
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <div class="story-nav">
+    <button id="prevBtn" class="nav-btn" disabled>السابق</button>
+    <button id="nextBtn" class="nav-btn">التالي</button>
+  </div>
+
+  <audio id="stepSound"
+    src="https://assets.mixkit.co/sfx/preview/mixkit-interface-click-1126.mp3"
+    preload="auto"></audio>
+
+  <script type="module">
+    import L from "https://esm.sh/leaflet";
+    import * as turf from "https://esm.sh/@turf/turf";
+
+    const map = L.map("map", {
+      zoomControl: false,
+      scrollWheelZoom: false,
+      dragging: false,
+      attributionControl: false,
+    }).setView([32.0, 44.0], 5);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png').addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', { zIndex: 1000 }).addTo(map);
+
+    const layerGroup = L.layerGroup().addTo(map);
+
+    const spotlight = document.getElementById("spotlight");
+    const stepSound = document.getElementById("stepSound");
+
+    const tooltipTitle = document.getElementById("tooltipTitle");
+    const tooltipText = document.getElementById("tooltipText");
+
+    const legendTitle = document.getElementById("legendTitle");
+    const legendItems = document.getElementById("legendItems");
+
+    const infoCard = document.getElementById("infoCard");
+    const infoText = document.getElementById("infoText");
+
+    const progressFill = document.getElementById("progressFill");
+    const stepIndicator = document.getElementById("stepIndicator");
+
+    function playSound() {
+      stepSound.currentTime = 0;
+      stepSound.volume = 0.25;
+      stepSound.play().catch(() => { });
+    }
+
+    function setTooltip(title, text) {
+      tooltipTitle.textContent = title;
+      tooltipText.textContent = text;
+    }
+
+    function setLegend(title, items) {
+      legendTitle.textContent = title;
+      legendItems.innerHTML = "";
+      items.forEach(it => {
+        const div = document.createElement("div");
+        div.className = "legend-item";
+        div.innerHTML = `<span class="legend-dot" style="background:${it.color}"></span> ${it.label}`;
+        legendItems.appendChild(div);
+      });
+    }
+
+    function setInfo(text) {
+      if (!text) {
+        infoCard.classList.remove("active");
+        return;
+      }
+      infoText.textContent = text;
+      infoCard.classList.add("active");
+    }
+
+    function clearLayers() {
+      layerGroup.clearLayers();
+    }
+
+    function addMarker(latlng, cls, label) {
+      const icon = L.divIcon({
+        className: "",
+        html: `<div class="unit-icon ${cls} pulse">${label}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+      });
+      return L.marker(latlng, { icon }).addTo(layerGroup);
+    }
+
+    function addBuffer(latlng, radius, color, dash = false) {
+      return L.circle(latlng, {
+        radius,
+        color,
+        fillColor: color,
+        fillOpacity: 0.12,
+        weight: 2,
+        dashArray: dash ? "8,8" : null,
+      }).addTo(layerGroup);
+    }
+
+    function addRoute(coords, color) {
+      return L.polyline(coords, { color, weight: 5, opacity: 0.9 }).addTo(layerGroup);
+    }
+
+    function addHeat(center, count = 10) {
+      for (let i = 0; i < count; i++) {
+        const lat = center[0] + (Math.random() * 1.2 - 0.6);
+        const lng = center[1] + (Math.random() * 1.2 - 0.6);
+        L.circle([lat, lng], {
+          radius: 25000 + Math.random() * 35000,
+          color: "#ff4d4d",
+          weight: 0,
+          fillOpacity: 0.12,
+        }).addTo(layerGroup);
+      }
+    }
+
+    function enableSpotlight(active) {
+      spotlight.classList.toggle("active", active);
+    }
+
+    // MAIN COORDINATES
+    const middleEastCenter = [30.5, 42.5];
+    const syriaCenter = [35.0, 38.5];
+    const aleppo = [36.2021, 37.1343];
+    const damascus = [33.5138, 36.2765];
+
+    // Example strategic points
+    const suez = [30.0444, 32.5322];
+    const hormuz = [26.5667, 56.2500];
+    const babAlMandab = [12.65, 43.35];
+
+    const steps = document.querySelectorAll(".step");
+    const order = Array.from(steps).map(s => s.dataset.step);
+
+    let currentIndex = 0;
+
+    function updateProgress() {
+      const percent = ((currentIndex + 1) / order.length) * 100;
+      progressFill.style.width = percent + "%";
+      stepIndicator.textContent = `${currentIndex + 1} / ${order.length}`;
+      document.getElementById("prevBtn").disabled = currentIndex === 0;
+      document.getElementById("nextBtn").disabled = currentIndex === order.length - 1;
+    }
+
+    const actions = {
+
+      s1: () => {
+        clearLayers();
+        enableSpotlight(false);
+        map.flyTo(middleEastCenter, 5, { duration: 2 });
+        setTooltip("البداية", "نبدأ من الشرق الأوسط لتوضيح مفهوم الدفاع الإقليمي والتحليل متعدد المستويات.");
+        setLegend("طبقات عامة", [
+          { color: "#00d4ff", label: "مراكز قيادة" },
+          { color: "#f1c40f", label: "منشآت حيوية" },
+          { color: "#ff4d4d", label: "مخاطر" }
+        ]);
+        setInfo("GIS في الدفاع = منصة قرار وليست مجرد خريطة.");
+      },
+
+      s2: () => {
+        clearLayers();
+        addMarker([31.95, 35.91], "friendly", "HQ");
+        addMarker([24.71, 46.67], "friendly", "HQ");
+        addMarker([33.89, 35.50], "friendly", "HQ");
+        map.flyTo(middleEastCenter, 5, { duration: 1.6 });
+        setTooltip("Architecture", "النظام عبارة عن منصة: بيانات + طبقات + تحليل + عرض + قرار.");
+        setInfo("الأنظمة الحديثة تعتمد على GIS كـ Operating Platform.");
+      },
+
+      s3: () => {
+        clearLayers();
+        addMarker([33.31, 44.36], "friendly", "COP");
+        addBuffer([33.31, 44.36], 250000, "#00d4ff");
+        map.flyTo([33.31, 44.36], 6, { duration: 1.4 });
+        setTooltip("COP", "صورة عمليات موحدة: الجميع يرى نفس الخريطة ونفس البيانات في الزمن الحقيقي.");
+        setInfo("COP تقلل ضباب الحرب وتزيد دقة القرار.");
+      },
+
+      s4: () => {
+        clearLayers();
+        enableSpotlight(true);
+        map.flyTo(middleEastCenter, 5, { duration: 1.8 });
+        setTooltip("Regional Defense", "تحليل الدفاع الإقليمي يبدأ بفهم شبكات الحركة والطاقة والمجال البحري.");
+        setLegend("مستوى الإقليم", [
+          { color: "#2ecc71", label: "شبكات طرق" },
+          { color: "#00d4ff", label: "مراكز قرار" }
+        ]);
+        setInfo(null);
+      },
+
+      s5: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        addMarker(suez, "critical", "SEA");
+        addMarker(hormuz, "critical", "SEA");
+        addMarker(babAlMandab, "critical", "SEA");
+
+        addBuffer(suez, 120000, "#f1c40f", true);
+        addBuffer(hormuz, 120000, "#f1c40f", true);
+        addBuffer(babAlMandab, 120000, "#f1c40f", true);
+
+        map.flyTo([22.5, 45.0], 5, { duration: 1.7 });
+        setTooltip("Sea Chokepoints", "المضائق البحرية تمثل نقاط استراتيجية حساسة تؤثر على الأمن والاقتصاد.");
+        setLegend("ممرات بحرية", [
+          { color: "#f1c40f", label: "مضيق استراتيجي" }
+        ]);
+        setInfo("تحليل المضائق مثال ممتاز على GIS في الأمن الإقليمي.");
+      },
+
+      s6: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker([29.37, 47.98], "critical", "P");
+        addMarker([25.20, 55.27], "critical", "P");
+        addMarker([31.23, 29.95], "critical", "P");
+
+        map.flyTo([27.5, 48.5], 5, { duration: 1.6 });
+        setTooltip("Critical Infrastructure", "المنشآت الحيوية لها أولوية قصوى في أنظمة GIS الدفاعية.");
+        setLegend("Assets", [
+          { color: "#f39c12", label: "منشأة حيوية" }
+        ]);
+        setInfo("أي منشأة حيوية تحتاج: موقع + حالة + أولوية + طبقات حماية.");
+      },
+
+      s7: () => {
+        clearLayers();
+        addMarker([33.31, 44.36], "critical", "A1");
+        addMarker([32.08, 34.78], "critical", "A2");
+        addMarker([24.71, 46.67], "critical", "A3");
+        map.flyTo(middleEastCenter, 5, { duration: 1.3 });
+
+        setTooltip("Asset Layer", "طبقة الأصول هي قلب النظام: تمثيل المواقع الحرجة كنقاط ذكية.");
+        setLegend("أصول", [
+          { color: "#f39c12", label: "Asset نقطة حرجة" }
+        ]);
+        setInfo("كل نقطة لها Attribute Table يمكن ربطه بلوحات الإحصاء.");
+      },
+
+      s8: () => {
+        clearLayers();
+        const asset = [33.31, 44.36];
+        addMarker(asset, "critical", "A");
+        addBuffer(asset, 80000, "#f1c40f");
+        addBuffer(asset, 160000, "#00d4ff", true);
+
+        map.flyTo(asset, 7, { duration: 1.5 });
+        setTooltip("Buffer Zones", "بناء نطاقات حماية متعددة المستويات حول منشأة حساسة.");
+        setLegend("نطاقات", [
+          { color: "#f1c40f", label: "نطاق حماية قريب" },
+          { color: "#00d4ff", label: "نطاق مراقبة أوسع" }
+        ]);
+        setInfo("Buffer Analysis من أكثر التحليلات استخداماً في الأمن.");
+      },
+
+      s9: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        const borderLine = [
+          [36.0, 37.0],
+          [36.4, 38.0],
+          [36.6, 39.0],
+          [36.9, 40.0],
+        ];
+        L.polyline(borderLine, { color: "#00d4ff", weight: 5, dashArray: "10,8" }).addTo(layerGroup);
+
+        map.flyTo([36.5, 39.0], 7, { duration: 1.5 });
+        setTooltip("Border Monitoring", "الحدود تحتاج مراقبة مستمرة: معابر + تضاريس + مناطق فراغ.");
+        setLegend("حدود", [
+          { color: "#00d4ff", label: "حدود مراقبة" }
+        ]);
+        setInfo("الحدود ليست خطاً… بل نظام مراقبة متكامل.");
+      },
+
+      s10: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addHeat([34.5, 39.0], 12);
+        map.flyTo(syriaCenter, 6, { duration: 1.7 });
+
+        setTooltip("Terrain Factors", "التضاريس تؤثر على الحركة، الرؤية، والمسارات اللوجستية.");
+        setLegend("تضاريس", [
+          { color: "#ff4d4d", label: "مناطق صعبة الحركة (محاكاة)" }
+        ]);
+        setInfo("الانحدار والارتفاع عنصران أساسيان في التحليل الدفاعي.");
+      },
+
+      s11: () => {
+        clearLayers();
+        const obs = damascus;
+        addMarker(obs, "friendly", "OBS");
+        const wedge = [];
+
+        const p1 = turf.point([obs[1], obs[0]]);
+        for (let a = 20; a <= 160; a += 8) {
+          const dest = turf.destination(p1, 18, a, { units: "kilometers" });
+          wedge.push([dest.geometry.coordinates[1], dest.geometry.coordinates[0]]);
+        }
+
+        L.polygon([obs, ...wedge], { color: "#2ecc71", fillOpacity: 0.18, weight: 1 }).addTo(layerGroup);
+        map.flyTo(obs, 10, { duration: 1.6 });
+
+        setTooltip("Viewshed", "محاكاة خط رؤية من نقطة مراقبة لتحديد المناطق المرئية.");
+        setLegend("Viewshed", [
+          { color: "#2ecc71", label: "منطقة مرئية" }
+        ]);
+        setInfo("Viewshed يستخدم لاختيار مواقع المراقبة والرادارات.");
+      },
+
+      s12: () => {
+        clearLayers();
+        enableSpotlight(true);
+        map.flyTo(syriaCenter, 6, { duration: 1.4 });
+
+        setTooltip("Early Warning", "الإنذار المبكر يعتمد على حساسات + تغطية + تحليل مكاني + تنبيهات.");
+        setLegend("Early Warning", [
+          { color: "#00d4ff", label: "حساسات / رادارات" }
+        ]);
+        setInfo("Early Warning لا يعمل بدون GIS لأنه يعتمد على المكان.");
+      },
+
+      s13: () => {
+        clearLayers();
+
+        const sensors = [
+          [35.4, 38.8],
+          [34.8, 37.2],
+          [36.2, 40.1],
+          [33.9, 38.9],
+        ];
+
+        sensors.forEach((s, i) => {
+          addMarker(s, "friendly", "R" + (i + 1));
+          addBuffer(s, 90000, "#00d4ff", true);
+        });
+
+        map.flyTo([35.3, 38.5], 7, { duration: 1.5 });
+
+        setTooltip("Sensor Coverage", "عرض تغطية الرادارات/الحساسات كنطاقات دائرية.");
+        setLegend("Sensors", [
+          { color: "#00d4ff", label: "نطاق تغطية رادار" }
+        ]);
+        setInfo("تداخل التغطيات يعني قوة مراقبة أعلى.");
+      },
+
+      s14: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addHeat([35.1, 39.2], 14);
+        map.flyTo([35.2, 39.0], 7, { duration: 1.5 });
+
+        setTooltip("Risk Zones", "تحويل المخاطر إلى طبقة تحليلية: Hotspots, Buffers, Density.");
+        setLegend("Risks", [
+          { color: "#ff4d4d", label: "منطقة خطر" }
+        ]);
+        setInfo("المخاطر يمكن أن تكون: أمنية، طبيعية، أو لوجستية.");
+      },
+
+      s15: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        addHeat([35.1, 39.2], 18);
+        map.flyTo([35.0, 39.3], 8, { duration: 1.6 });
+
+        setTooltip("Heatmap", "Heatmap تساعد القائد على رؤية النمط بدل قراءة مئات النقاط.");
+        setLegend("Heatmap", [
+          { color: "#ff4d4d", label: "كثافة نشاط مرتفعة" }
+        ]);
+        setInfo("Heatmap = Kernel Density Visualization.");
+      },
+
+      s16: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker([34.8, 38.2], "critical", "S");
+        addMarker([35.3, 37.7], "critical", "S");
+        addMarker([35.7, 39.4], "critical", "S");
+
+        map.flyTo([35.2, 38.4], 7, { duration: 1.6 });
+
+        setTooltip("Logistics Network", "الدفاع الإقليمي يعتمد على شبكة دعم: مخازن، وقود، نقاط تموين.");
+        setLegend("Logistics", [
+          { color: "#f39c12", label: "نقطة دعم" }
+        ]);
+        setInfo("اللوجستيات عنصر استراتيجي أهم من السلاح نفسه.");
+      },
+
+      s17: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        const route = [
+          [34.5, 37.0],
+          [35.0, 38.0],
+          [35.4, 39.0],
+          [35.8, 40.2],
+        ];
+
+        addRoute(route, "#00d4ff");
+        addMarker(route[0], "friendly", "D1");
+        addMarker(route[3], "friendly", "D2");
+
+        map.flyTo([35.2, 38.8], 7, { duration: 1.5 });
+
+        setTooltip("Route Planning", "Network Analysis يحدد أفضل طريق آمن/سريع لنقل الإمدادات.");
+        setLegend("Routes", [
+          { color: "#00d4ff", label: "مسار إمداد" }
+        ]);
+        setInfo("المسار يمكن أن يتغير حسب المخاطر.");
+      },
+
+      s18: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        addRoute([[34.7, 38.1], [35.0, 38.5], [35.4, 39.0]], "#2ecc71");
+        addMarker([35.0, 38.5], "risk", "X");
+
+        addBuffer([35.0, 38.5], 50000, "#ff4d4d", true);
+
+        map.flyTo([35.0, 38.5], 9, { duration: 1.5 });
+
+        setTooltip("Chokepoint", "نقطة اختناق: إذا تعطلت هذه النقطة تتعطل حركة الإمداد.");
+        setLegend("Chokepoints", [
+          { color: "#ff4d4d", label: "نقطة اختناق" }
+        ]);
+        setInfo("تحليل Chokepoints جزء أساسي من التخطيط.");
+      },
+
+      s19: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        const support = [35.1, 38.6];
+        addMarker(support, "critical", "SUP");
+        addBuffer(support, 110000, "#2ecc71");
+
+        map.flyTo(support, 8, { duration: 1.5 });
+
+        setTooltip("Resource Allocation", "تحديد مواقع الدعم بحيث تغطي أكبر مساحة بأقل تكلفة.");
+        setLegend("Support", [
+          { color: "#2ecc71", label: "تغطية دعم" }
+        ]);
+        setInfo("هذه خطوة تشبه Location-Allocation في GIS.");
+      },
+
+      s20: () => {
+        clearLayers();
+        enableSpotlight(false);
+        map.flyTo(syriaCenter, 6, { duration: 1.8 });
+
+        setTooltip("Zoom to Syria", "ننتقل إلى مستوى سوريا لتحليل البيانات على مستوى الدولة.");
+        setLegend("State Level", [
+          { color: "#00d4ff", label: "مستوى الدولة" }
+        ]);
+        setInfo("التدرج الجغرافي مهم: إقليم → دولة → مدينة.");
+      },
+
+      s21: () => {
+        clearLayers();
+        addMarker([35.5, 38.6], "friendly", "HQ");
+        addMarker([34.7, 37.3], "critical", "A");
+        addMarker([36.0, 40.0], "risk", "R");
+
+        map.flyTo([35.3, 38.6], 7, { duration: 1.5 });
+
+        setTooltip("Layer Management", "الطبقات يجب أن تكون منظمة ومصنفة لتسهيل التحكم والتصفية.");
+        setLegend("Layers", [
+          { color: "#00d4ff", label: "مركز قيادة" },
+          { color: "#f39c12", label: "أصل حيوي" },
+          { color: "#ff4d4d", label: "مخاطر" }
+        ]);
+        setInfo("ArcGIS / WebGIS يعتمد على مفهوم Layer Control.");
+      },
+
+      s22: () => {
+        clearLayers();
+        addMarker([35.2, 38.9], "friendly", "DB");
+        map.flyTo([35.2, 38.9], 8, { duration: 1.5 });
+
+        setTooltip("Attributes", "كل عنصر على الخريطة مرتبط ببيانات وصفية يمكن تحليلها وعرضها.");
+        setLegend("Attributes", [
+          { color: "#00d4ff", label: "Feature + Attribute Table" }
+        ]);
+        setInfo("الميزة الأهم في GIS: البيانات الوصفية مرتبطة بالمكان.");
+      },
+
+      s23: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        L.polygon([[34.6, 37.2], [35.6, 37.2], [35.6, 38.7], [34.6, 38.7]], {
+          color: "#f1c40f",
+          fillOpacity: 0.08,
+          weight: 2,
+          dashArray: "10,6"
+        }).addTo(layerGroup);
+
+        map.flyTo([35.1, 38.0], 8, { duration: 1.5 });
+
+        setTooltip("Zones of Control", "تقسيم المناطق لتحديد مسؤوليات وإدارة التدخل.");
+        setLegend("Zones", [
+          { color: "#f1c40f", label: "منطقة عمليات" }
+        ]);
+        setInfo("المنطقة = AOI أو Sector أو Operational Zone.");
+      },
+
+      s24: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addHeat([35.0, 38.1], 10);
+        addMarker([35.2, 38.3], "critical", "A");
+
+        map.flyTo([35.1, 38.2], 9, { duration: 1.5 });
+
+        setTooltip("Spatial Overlay", "Overlay يحدد أين تتقاطع المخاطر مع الأصول.");
+        setLegend("Overlay", [
+          { color: "#ff4d4d", label: "خطر" },
+          { color: "#f39c12", label: "أصل" }
+        ]);
+        setInfo("Overlay يخرج بقرار: أي الأصول ضمن الخطر؟");
+      },
+
+      s25: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        const points = [
+          [35.4, 38.1],
+          [35.2, 37.7],
+          [35.0, 38.5],
+          [34.8, 38.0]
+        ];
+
+        points.forEach((p, i) => addMarker(p, "critical", "S" + (i + 1)));
+
+        map.flyTo([35.1, 38.0], 9, { duration: 1.5 });
+
+        setTooltip("Support Points", "نقاط الدعم توزع لتقليل زمن الاستجابة وتغطية القطاعات.");
+        setLegend("Support", [
+          { color: "#f39c12", label: "نقطة دعم" }
+        ]);
+        setInfo("توزيع الدعم يعتمد على الكثافة والمخاطر.");
+      },
+
+      s26: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        addMarker([35.2, 38.3], "friendly", "D");
+        addBuffer([35.2, 38.3], 140000, "#00d4ff");
+
+        map.flyTo([35.2, 38.3], 8, { duration: 1.4 });
+
+        setTooltip("Dashboard Concept", "الـ Dashboard يحول الخريطة إلى غرفة عمليات رقمية.");
+        setLegend("Dashboard", [
+          { color: "#00d4ff", label: "مركز قيادة" }
+        ]);
+        setInfo("Dashboards تربط الخريطة بالأرقام مباشرة.");
+      },
+
+      s27: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker([35.2, 38.3], "friendly", "KPI");
+        map.flyTo([35.2, 38.3], 8, { duration: 1.4 });
+
+        setTooltip("KPIs", "مؤشرات مثل: عدد الأصول، عدد المناطق الحرجة، نسبة التغطية.");
+        setLegend("KPIs", [
+          { color: "#2ecc71", label: "مؤشر جاهزية" }
+        ]);
+        setInfo("بدون مؤشرات… الخريطة تبقى شكل فقط.");
+      },
+
+      s28: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addRoute([[35.2, 37.6], [35.3, 38.2], [35.5, 39.0]], "#f1c40f");
+        map.flyTo([35.4, 38.5], 8, { duration: 1.4 });
+
+        setTooltip("Temporal Analytics", "تحليل الحركة عبر الزمن يعطي رؤية استباقية.");
+        setLegend("Temporal", [
+          { color: "#f1c40f", label: "مسار زمني" }
+        ]);
+        setInfo("تحليل الزمن = الفرق بين المراقبة والتنبؤ.");
+      },
+
+      s29: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        addMarker([35.4, 38.8], "risk", "ALERT");
+        addBuffer([35.4, 38.8], 90000, "#ff4d4d");
+
+        map.flyTo([35.4, 38.8], 9, { duration: 1.5 });
+
+        setTooltip("Alerts", "التحول الحقيقي: النظام يرسل تنبيه تلقائي عند تغير النمط.");
+        setLegend("Alerts", [
+          { color: "#ff4d4d", label: "تنبيه" }
+        ]);
+        setInfo("Event-driven GIS = GIS يعتمد على الحدث.");
+      },
+
+      s30: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        map.flyTo(aleppo, 11, { duration: 2 });
+
+        setTooltip("Zoom to Aleppo", "ننتقل إلى مستوى المدينة لتوضيح التحليل الحضري الدقيق.");
+        setLegend("Urban GIS", [
+          { color: "#00d4ff", label: "تحليل حضري" }
+        ]);
+        setInfo("المدينة = أعلى كثافة بيانات وأعلى تعقيد.");
+      },
+
+      s31: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        const sector = [
+          [36.17, 37.05],
+          [36.27, 37.05],
+          [36.27, 37.20],
+          [36.17, 37.20]
+        ];
+
+        L.polygon(sector, {
+          color: "#f1c40f",
+          fillOpacity: 0.08,
+          weight: 2
+        }).addTo(layerGroup);
+
+        map.flyTo([36.22, 37.13], 12, { duration: 1.5 });
+
+        setTooltip("Sectors", "تقسيم المدينة إلى قطاعات يسهل التخطيط والإدارة.");
+        setLegend("Sectors", [
+          { color: "#f1c40f", label: "قطاع عمليات" }
+        ]);
+        setInfo("Sectors تستخدم في الشرطة والدفاع المدني أيضاً.");
+      },
+
+      s32: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker(aleppo, "friendly", "BASE");
+        addBuffer(aleppo, 2500, "#2ecc71");
+        addBuffer(aleppo, 5000, "#00d4ff", true);
+
+        map.flyTo(aleppo, 13, { duration: 1.4 });
+
+        setTooltip("Service Area", "نطاقات زمن الاستجابة داخل المدينة.");
+        setLegend("Service Area", [
+          { color: "#2ecc71", label: "5 دقائق" },
+          { color: "#00d4ff", label: "10 دقائق" }
+        ]);
+        setInfo("Service Area يحدد أين نحتاج نقاط دعم إضافية.");
+      },
+
+      s33: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker([36.21, 37.14], "critical", "H");
+        addMarker([36.23, 37.12], "critical", "E");
+        addMarker([36.20, 37.16], "critical", "C");
+
+        map.flyTo([36.22, 37.13], 14, { duration: 1.4 });
+
+        setTooltip("Sensitive Assets", "تحديد منشآت حساسة داخل المدينة وربطها ببيانات أولوية.");
+        setLegend("Assets", [
+          { color: "#f39c12", label: "منشأة حساسة" }
+        ]);
+        setInfo("المنشآت الحساسة تحتاج طبقات حماية + مراقبة.");
+      },
+
+      s34: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        addHeat([36.22, 37.13], 14);
+
+        map.flyTo([36.22, 37.13], 13, { duration: 1.5 });
+
+        setTooltip("Urban Risk", "Heatmap داخل المدينة يوضح أين تتركز المخاطر أو النشاط.");
+        setLegend("Urban Risk", [
+          { color: "#ff4d4d", label: "خطر مرتفع" }
+        ]);
+        setInfo("التحليل الحضري يعطي نتائج دقيقة بسبب كثافة البيانات.");
+      },
+
+      s35: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        const monitors = [
+          [36.215, 37.125],
+          [36.225, 37.145],
+          [36.235, 37.110],
+          [36.205, 37.155]
+        ];
+
+        monitors.forEach((m, i) => {
+          addMarker(m, "friendly", "M" + (i + 1));
+          addBuffer(m, 1500, "#00d4ff", true);
+        });
+
+        map.flyTo([36.22, 37.13], 14, { duration: 1.5 });
+
+        setTooltip("Coverage Planning", "توزيع نقاط المراقبة لتقليل الفراغات وتحقيق تغطية أفضل.");
+        setLegend("Coverage", [
+          { color: "#00d4ff", label: "نقطة مراقبة" }
+        ]);
+        setInfo("تداخل الدوائر يعني تغطية قوية.");
+      },
+
+      s36: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker([36.215, 37.125], "friendly", "A");
+        addMarker([36.225, 37.145], "critical", "B");
+        addMarker([36.235, 37.110], "risk", "C");
+
+        map.flyTo([36.22, 37.13], 14, { duration: 1.4 });
+
+        setTooltip("Symbology", "الرموز والألوان لغة. يجب أن تكون واضحة وسريعة الفهم.");
+        setLegend("Symbology", [
+          { color: "#3498db", label: "صديق / مركز" },
+          { color: "#f39c12", label: "منشأة" },
+          { color: "#ff4d4d", label: "خطر" }
+        ]);
+        setInfo("في الأنظمة الدفاعية: الرمزية أهم من الجمال.");
+      },
+
+      s37: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        addMarker(aleppo, "friendly", "RBAC");
+        map.flyTo(aleppo, 12, { duration: 1.4 });
+
+        setTooltip("RBAC", "نظام الصلاحيات يمنع تسرب البيانات ويحدد من يرى ماذا.");
+        setLegend("Security", [
+          { color: "#00d4ff", label: "مستخدم مخول" }
+        ]);
+        setInfo("RBAC = Role Based Access Control.");
+      },
+
+      s38: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker(aleppo, "friendly", "LOG");
+        map.flyTo(aleppo, 12, { duration: 1.4 });
+
+        setTooltip("Logs", "السجل التاريخي مهم: أي تغيير يجب أن يكون محفوظاً للمراجعة.");
+        setLegend("Monitoring", [
+          { color: "#2ecc71", label: "تسجيل أحداث" }
+        ]);
+        setInfo("Logs = Audit Trail.");
+      },
+
+      s39: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker(aleppo, "friendly", "DEC");
+        addHeat([36.22, 37.13], 10);
+
+        map.flyTo(aleppo, 12, { duration: 1.4 });
+
+        setTooltip("Decision Support", "الخريطة تصبح أداة قرار عندما تُدمج بالتحليل والإحصائيات.");
+        setLegend("Decision", [
+          { color: "#00d4ff", label: "مركز قرار" },
+          { color: "#ff4d4d", label: "تحليل مخاطر" }
+        ]);
+        setInfo("GIS = Decision Support System.");
+      },
+
+      s40: () => {
+        clearLayers();
+        enableSpotlight(true);
+
+        map.flyTo(syriaCenter, 6, { duration: 2 });
+
+        addMarker([35.2, 38.5], "friendly", "MoD");
+        addBuffer([35.2, 38.5], 250000, "#00d4ff");
+
+        setTooltip("Ministry of Defense", "وزارة الدفاع تحتاج منصة توحّد كل البيانات والطبقات والتحليلات.");
+        setLegend("Defense", [
+          { color: "#00d4ff", label: "نطاق وزارة الدفاع" }
+        ]);
+        setInfo("GIS الدفاعي يعني إدارة موارد، مراقبة، وتحليل متعدد المستويات.");
+      },
+
+      s41: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker([35.2, 38.5], "friendly", "API");
+        addMarker([36.2, 37.1], "friendly", "SYS");
+        addRoute([[35.2, 38.5], [36.2, 37.1]], "#2ecc71");
+
+        map.flyTo([35.7, 37.8], 7, { duration: 1.5 });
+
+        setTooltip("Integration", "النظام يمكن ربطه مع قواعد بيانات وأنظمة أخرى عبر API.");
+        setLegend("Integration", [
+          { color: "#2ecc71", label: "تكامل بين أنظمة" }
+        ]);
+        setInfo("API Integration يجعل النظام منصة مركزية.");
+      },
+
+      s42: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        map.flyTo(middleEastCenter, 5, { duration: 2 });
+
+        setTooltip("Scalability", "نفس النظام يمكن توسيعه من مدينة إلى دولة إلى إقليم بسهولة.");
+        setLegend("Scalability", [
+          { color: "#00d4ff", label: "نطاق توسع" }
+        ]);
+        setInfo("إذا بنيت البيانات بشكل صحيح… التوسع يصبح سهلاً.");
+      },
+
+      s43: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker([35.2, 38.5], "critical", "PDF");
+        map.flyTo([35.2, 38.5], 7, { duration: 1.5 });
+
+        setTooltip("Reports", "التقارير الرسمية جزء أساسي: خرائط + جداول + مؤشرات + ملخص.");
+        setLegend("Reports", [
+          { color: "#f39c12", label: "تقرير رسمي" }
+        ]);
+        setInfo("التقرير = المخرج الرسمي لقرار القيادة.");
+      },
+
+      s44: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker(middleEastCenter, "friendly", "GIS");
+        map.flyTo(middleEastCenter, 5, { duration: 1.8 });
+
+        setTooltip("Summary", "هذا المشروع يثبت أن GIS نظام قيادة وتحليل وليس مجرد خريطة.");
+        setLegend("Summary", [
+          { color: "#00d4ff", label: "GIS Platform" }
+        ]);
+        setInfo("GIS = بيانات + تحليل + عرض + قرار.");
+      },
+
+      s45: () => {
+        clearLayers();
+        enableSpotlight(false);
+
+        addMarker(middleEastCenter, "critical", "LIVE");
+        map.flyTo(middleEastCenter, 5, { duration: 1.8 });
+
+        setTooltip("Final", "الآن يمكنك عرض الموقع الحقيقي وشرح كيف تم بناء كل طبقة وتحليل.");
+        setLegend("Project", [
+          { color: "#f39c12", label: "المشروع الحقيقي" }
+        ]);
+        setInfo("يمكنك الآن الانتقال للرابط وشرح الواجهة مباشرة .");
+      }
+    };
+
+    // Intersection Observer
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.dataset.step;
+          currentIndex = order.indexOf(id);
+
+          updateProgress();
+          playSound();
+
+          if (actions[id]) actions[id]();
+
+          // Smooth highlight
+          steps.forEach(s => s.classList.remove("active"));
+          entry.target.classList.add("active");
+        }
+      });
+    }, { threshold: 0.55 });
+
+    steps.forEach(step => observer.observe(step));
+
+    // NAV BUTTONS
+    const nextBtn = document.getElementById("nextBtn");
+    const prevBtn = document.getElementById("prevBtn");
+
+    nextBtn.onclick = () => {
+      if (currentIndex < order.length - 1) {
+        steps[currentIndex + 1].scrollIntoView({ behavior: "smooth" });
+      }
+    };
+
+    prevBtn.onclick = () => {
+      if (currentIndex > 0) {
+        steps[currentIndex - 1].scrollIntoView({ behavior: "smooth" });
+      }
+    };
+
+    // Restart
+    document.getElementById("restartBtn").onclick = () => {
+      steps[0].scrollIntoView({ behavior: "smooth" });
+    };
+
+    updateProgress();
+	
+	// ----- IFRAME POPUP CONTROLS -----
+const iframeModal = document.getElementById("iframeModal");
+const liveIframe = document.getElementById("liveIframe");
+const openIframeBtn = document.getElementById("openIframeBtn");
+const closeIframe = document.getElementById("closeIframe");
+
+// عند الضغط على الزر تظهر النافذة وتحمّل الموقع
+openIframeBtn.onclick = () => {
+  liveIframe.src = "https://yasseralmofaalani.github.io/military-operations-system/";
+  iframeModal.style.display = "block";
+};
+
+// إغلاق النافذة
+closeIframe.onclick = () => {
+  iframeModal.style.display = "none";
+  liveIframe.src = ""; // تفريغ الـ src لإيقاف تحميل الصفحة
+};
+
+// إغلاق عند الضغط خارج الإطار
+iframeModal.onclick = (e) => {
+  if (e.target === iframeModal) {
+    iframeModal.style.display = "none";
+    liveIframe.src = "";
+  }
+};
+
+  </script>
+
+</body>
+
+</html>
