@@ -12,8 +12,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>-->
     <link href="css/font.css"
         rel="stylesheet">
-
-    <style>
+  <style>
         :root {
             --glass-bg: rgba(15, 23, 42, 0.08);
             --glass-border: rgba(255, 255, 255, 0.2);
@@ -305,8 +304,57 @@
         border-radius: 10px;
     }
 }
+#steps-bar {
+    position: fixed;
+    bottom: 20px; /* أسفل الصفحة */
+    left: 20px;  /* يمكن تغييره إلى left إذا أردت على اليسار */
+    z-index: 999999;
+    width: 60px;  /* عرض العمود */
+    padding: 10px 0;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.25);
+    box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+
+    display: flex;
+    flex-direction: column; /* عمودي */
+    align-items: center;
+    gap: 8px;
+        align-self: center;
+}
+
+#steps-title {
+    writing-mode: vertical-rl; /* لجعل النص عمودي */
+    transform: rotate(180deg); /* لتصحيح الاتجاه */
+    font-size: 12px;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 10px;
+}
+
+#step-icons {
+    display: flex;
+    flex-direction: column; /* أيقونات عمودية */
+    gap: 8px;
+    overflow-y: auto;
+    max-height: 70vh; /* يمكنك تغييرها حسب الحاجة */
+    scroll-behavior: smooth;
+    white-space: normal; /* لإيقاف التسطير الأفقي */
+    padding: 4px 0;
+}
+
+#step-icons::-webkit-scrollbar {
+    width: 6px;
+}
+
+#step-icons::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+}
 
     </style>
+   
 </head>
 
 <body>
@@ -323,7 +371,7 @@
 
 <div id="steps-bar">
     <div id="steps-title">
-        <span id="step-label">التقدم</span>
+        <span id="step-label"></span>
         <span id="step-counter">1 / 50</span>
     </div>
     <div id="step-icons"></div>
